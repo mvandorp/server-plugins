@@ -176,7 +176,7 @@ enum strAbility
     ABL_ROCKTHROW
 };
 
-enum _:strRockData
+enum strRockData
 {
     rckDamage,
     rckTank,
@@ -184,7 +184,7 @@ enum _:strRockData
 };
 
 // witch array entries (maxplayers+index)
-enum _:strWitchArray
+enum strWitchArray
 {
     WTCH_NONE,
     WTCH_HEALTH,
@@ -195,7 +195,7 @@ enum _:strWitchArray
     WTCH_CROWNTYPE
 };
 
-enum _:enAlarmReasons
+enum enAlarmReasons
 {
     CALARM_UNKNOWN,
     CALARM_HIT,
@@ -1849,7 +1849,7 @@ public Action: Event_WitchSpawned ( Handle:event, const String:name[], bool:dont
     
     SDKHook(witch, SDKHook_OnTakeDamagePost, OnTakeDamagePost_Witch);
     
-    new witch_dmg_array[MAXPLAYERS+DMGARRAYEXT];
+    decl witch_dmg_array[MAXPLAYERS+DMGARRAYEXT];
     decl String:witch_key[10];
     FormatEx(witch_key, sizeof(witch_key), "%x", witch);
     witch_dmg_array[MAXPLAYERS+WTCH_HEALTH] = GetConVarInt(g_hCvarWitchHealth);

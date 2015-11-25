@@ -26,7 +26,6 @@
 #include <colors>
 #undef REQUIRE_PLUGIN
 #tryinclude <pause>
-#tryinclude <deadsilence>
 static Handle:g_hCVarMinAllowedSlots;
 static Handle:g_hCVarMaxAllowedSlots;
 
@@ -54,7 +53,6 @@ static g_iDesiredSlots;
 #if defined _pause_included_
 static bool:g_bPause_Lib;
 #endif
-static bool:g_bDSExists;
 static Handle:g_cvarSlotsPluginEnabled = INVALID_HANDLE;
 static Handle:g_cvarSlotsAutoconf	= INVALID_HANDLE;
 static Handle:g_cvarSvVisibleMaxPlayers = INVALID_HANDLE;
@@ -174,10 +172,6 @@ public Action:Cmd_MaxSlots(client, args) {
 	}
 	return Plugin_Handled;
 }
-public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max) {
-	g_bDSExists = LibraryExists("deadsilence");
-	return APLRes_Success;
-}
 #if defined _pause_included_
 public OnLibraryAdded(const String:name[])
 {
@@ -228,7 +222,6 @@ public CVarChangeMaxAllowedSlots(Handle:hCVar, const String:sOldValue[], const S
 	}
 }
 public CurrentMaxSlots_Changed(Handle:cvar, const String:oldValue[], const String:newValue[]) {
-	new any:slots = StringToInt(newValue);
 	SetConVarInt(g_hCVarMaxPlayersToolZ, GetConVarInt(g_cvarCurrentMaxSlots));
 	SetConVarInt(g_cvarSvVisibleMaxPlayers, GetConVarInt(g_cvarCurrentMaxSlots));
 }
@@ -615,10 +608,6 @@ static KickAllSpectators()
 	{
 		if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == 1)
 		{
-			if(g_bDSExists && IsClientPrivileged(i)) { 
-				CPrintToChatAll("Can not kick {green}%N {default}from spectators. This player privileged!", i);
-				continue;
-			}
 			BanClient(i, 5, BANFLAG_AUTHID, reason, reason, "nospec");
 			iSpecs++;
 		}
