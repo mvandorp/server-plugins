@@ -306,30 +306,30 @@ public Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 			
 			if (StrEqual(weapon, "weapon_melee"))
 			{
-				CPrintToChat(victim, "{blue}[{default}Stats{blue}] {default}You were {blue}melee skeeted {default}by {olive}%N", attacker);
-				CPrintToChat(attacker, "{blue}[{default}Stats{blue}] {default}You {blue}melee{default}-{blue}skeeted {olive}%N", victim);
+				CPrintToChat(victim, "{default}You were {blue}melee skeeted {default}by {olive}%N", attacker);
+				CPrintToChat(attacker, "{default}You {blue}melee{default}-{blue}skeeted {olive}%N", victim);
 				
 				for (new b = 1; b <= MaxClients; b++)
 				{
 					//Print to Specs!
 					if (IsClientInGame(b) && (victim != b) && (attacker != b))
 					{
-						CPrintToChat(b, "{blue}[{default}Stats{blue}] {olive}%N {default}was {blue}melee{default}-{blue}skeeted {default}by {olive}%N", victim, attacker)
+						CPrintToChat(b, "{green}%N {default}was {blue}melee{default}-{blue}skeeted {default}by {olive}%N", victim, attacker)
 					}
 				}
 			}
 			// Scout Headshot
 			else if (GetEventBool(event, "headshot") && StrEqual(weapon, "weapon_sniper_scout"))
 			{
-				CPrintToChat(victim, "{blue}[{default}Stats{blue}] {default}You were {blue}Headshotted {default}by {blue}Scout-Player{default}: {olive}%N", attacker);
-				CPrintToChat(attacker, "{blue}[{default}Stats{blue}] {default}You {blue}Headshotted {olive}%N {default}with the {blue}Scout", victim);
+				CPrintToChat(victim, "{default}You were {blue}Headshotted {default}by {blue}Scout-Player{default}: {olive}%N", attacker);
+				CPrintToChat(attacker, "{default}You {blue}Headshotted {olive}%N {default}with the {blue}Scout", victim);
 				
 				for (new b = 1; b <= MaxClients; b++)
 				{
 					//Print to Specs!
 					if (IsClientInGame(b) && (victim != b) && (attacker != b))
 					{
-						CPrintToChat(b, "{blue}[{default}Stats{blue}] {olive}%N {default}was {blue}Headshotted {default}by {blue}Scout-Player{default}: {olive}%N", victim, attacker);
+						CPrintToChat(b, "{green}%N {default}was {blue}Headshotted {default}by {blue}Scout-Player{default}: {olive}%N", victim, attacker);
 					}
 				}
 			}
@@ -360,15 +360,15 @@ public Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 				// Print to assisters
 				for (i = 0; i < assister_count; i++)
 				{
-					CPrintToChat(assisters[i][0], "{blue}[{default}Stats{blue}] {olive}%N {default}teamskeeted {olive}%N {default}for {blue}%d damage {default}in {blue}%d shot%s{default}. Assisted by: {olive}%s",
+					CPrintToChat(assisters[i][0], "{green}%N {default}teamskeeted {olive}%N {default}for {blue}%d damage {default}in {blue}%d shot%s{default}. Assisted by: {olive}%s",
 					attacker, victim, damage, shots, plural, assister_string);
 				}
 				// Print to victim
-				CPrintToChat(victim, "{blue}[{default}Stats{blue}] {default}You were teamskeeted by {olive}%N {default}for {blue}%d damage {default}in {blue}%d shot%s{default}. Assisted by: {olive}%s",
+				CPrintToChat(victim, "{default}You were teamskeeted by {olive}%N {default}for {blue}%d damage {default}in {blue}%d shot%s{default}. Assisted by: {olive}%s",
 				attacker, damage, shots, plural, assister_string);
 				
 				// Finally print to attacker
-				CPrintToChat(attacker, "{blue}[{default}Stats{blue}] {default}You teamskeeted {olive}%N {default}for {blue}%d damage {default}in {blue}%d shot%s{default}. Assisted by: {olive}%s",
+				CPrintToChat(attacker, "{default}You teamskeeted {olive}%N {default}for {blue}%d damage {default}in {blue}%d shot%s{default}. Assisted by: {olive}%s",
 				victim, damage, shots, plural, assister_string);
 				
 				//Print to Specs!
@@ -376,23 +376,23 @@ public Event_PlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 				{
 					if (IsClientInGame(b) && (IsSpectator(b)))
 					{
-						CPrintToChat(b, "{blue}[{default}Stats{blue}] {olive}%N {default}teamskeeted {olive}%N {default}for {blue}%d damage {default}in {blue}%d shot%s{default}. Assisted by: {olive}%s",
+						CPrintToChat(b, "{green}%N {default}teamskeeted {olive}%N {default}for {blue}%d damage {default}in {blue}%d shot%s{default}. Assisted by: {olive}%s",
 						attacker, victim, damage, shots, plural, assister_string);
 					}
 				}
 			}
 			else
 			{
-				CPrintToChat(victim, "{blue}[{default}Stats{blue}] {default}You were skeeted by {olive}%N {default}in {blue}%d shot%s", attacker, shots, plural);
+				CPrintToChat(victim, "{default}You were skeeted by {olive}%N {default}in {blue}%d shot%s", attacker, shots, plural);
 				
-				CPrintToChat(attacker, "{blue}[{default}Stats{blue}] {default}You skeeted {olive}%N {default}in {blue}%d shot%s", victim, shots, plural);
+				CPrintToChat(attacker, "{default}You skeeted {olive}%N {default}in {blue}%d shot%s", victim, shots, plural);
 				
 				for (new b = 1; b <= MaxClients; b++)
 				{
 					//Print to Everyone Else!
 					if (IsClientInGame(b) && (victim != b) && attacker != b)
 					{
-						CPrintToChat(b, "{blue}[{default}Stats{blue}] {olive}%N {default}skeeted {olive}%N {default}in {blue}%d shot%s", attacker, victim, shots, plural);
+						CPrintToChat(b, "{green}%N {default}skeeted {olive}%N {default}in {blue}%d shot%s", attacker, victim, shots, plural);
 					}
 				}
 			}
@@ -422,18 +422,18 @@ public Action:Timer_BoomerKilledCheck(Handle:timer)
 				// Shover is Killer
 				if (g_iBoomerShover == g_iBoomerKiller)
 				{
-					CPrintToChatAll("{blue}[{default}Stats{blue}] {olive}%N {default}shoved and popped {olive}%s{default}'s Boomer in {blue}%0.1fs", g_iBoomerKiller, Boomer, BoomerKillTime);
+					CPrintToChatAll("{green}%N {default}shoved and popped {olive}%s{default}'s Boomer in {blue}%0.1fs", g_iBoomerKiller, Boomer, BoomerKillTime);
 				}
 				// Someone Shoved and Someone Killed
 				else
 				{
-					CPrintToChatAll("{blue}[{default}Stats{blue}] {olive}%N {default}shoved and {olive}%N {default}popped {olive}%s{default}'s Boomer in {blue}%0.1fs", g_iBoomerShover, g_iBoomerKiller, Boomer, BoomerKillTime);
+					CPrintToChatAll("{green}%N {default}shoved and {olive}%N {default}popped {olive}%s{default}'s Boomer in {blue}%0.1fs", g_iBoomerShover, g_iBoomerKiller, Boomer, BoomerKillTime);
 				}
 			}
 			//Boomer got Popped without Shove
 			else
 			{
-				CPrintToChatAll("{blue}[{default}Stats{blue}] {olive}%N {default}has shutdown {olive}%s{default}'s Boomer in {blue}%0.1fs", g_iBoomerKiller, Boomer, BoomerKillTime);
+				CPrintToChatAll("{green}%N {default}has shutdown {olive}%s{default}'s Boomer in {blue}%0.1fs", g_iBoomerKiller, Boomer, BoomerKillTime);
 			}
 		}
 	}
@@ -500,7 +500,7 @@ public Event_PlayerBoomed(Handle:event, const String:name[], bool:dontBroadcast)
 				{
 					if (IsClientInGame(i))
 					{
-						if (IsSurvivor(i) || (IsSpectator(i))) CPrintToChat(i, "{blue}[{default}Stats{blue}] {olive}%N {default}shoved {olive}%s{default}'s Boomer, but popped it too early", g_iBoomerShover, Boomer);
+						if (IsSurvivor(i) || (IsSpectator(i))) CPrintToChat(i, "{green}%N {default}shoved {olive}%s{default}'s Boomer, but popped it too early", g_iBoomerShover, Boomer);
 					}
 				}
 			}
@@ -510,7 +510,7 @@ public Event_PlayerBoomed(Handle:event, const String:name[], bool:dontBroadcast)
 				{
 					if (IsClientInGame(i))
 					{
-						if (IsSurvivor(i) || (IsSpectator(i))) CPrintToChat(i, "{blue}[{default}Stats{blue}] {olive}%N {default}shoved {olive}%s{default}'s Boomer, but {olive}%N {default}popped it too early", g_iBoomerShover, Boomer, g_iBoomerKiller);
+						if (IsSurvivor(i) || (IsSpectator(i))) CPrintToChat(i, "{green}%N {default}shoved {olive}%s{default}'s Boomer, but {olive}%N {default}popped it too early", g_iBoomerShover, Boomer, g_iBoomerKiller);
 					}
 				}
 			}
@@ -539,7 +539,7 @@ public Action:Event_AlarmCar(Handle:event, const String:name[], bool:dontBroadca
 {
 	if (g_iAlarmCarClient && IsClientInGame(g_iAlarmCarClient) && GetClientTeam(g_iAlarmCarClient) == 2)
 	{
-		CPrintToChatAll("{blue}[{default}Stats{blue}] {olive}%N {default}triggered an {olive}Alarmed Car", g_iAlarmCarClient);
+		CPrintToChatAll("{green}%N {default}triggered an {olive}Alarmed Car", g_iAlarmCarClient);
 		g_iAlarmCarClient = 0;
 	}
 }

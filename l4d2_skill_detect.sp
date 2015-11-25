@@ -1849,7 +1849,7 @@ public Action: Event_WitchSpawned ( Handle:event, const String:name[], bool:dont
     
     SDKHook(witch, SDKHook_OnTakeDamagePost, OnTakeDamagePost_Witch);
     
-    decl witch_dmg_array[MAXPLAYERS+DMGARRAYEXT];
+    new witch_dmg_array[MAXPLAYERS+DMGARRAYEXT];
     decl String:witch_key[10];
     FormatEx(witch_key, sizeof(witch_key), "%x", witch);
     witch_dmg_array[MAXPLAYERS+WTCH_HEALTH] = GetConVarInt(g_hCvarWitchHealth);
@@ -2461,14 +2461,14 @@ stock HandleLevel( attacker, victim )
     {
         if ( IS_VALID_INGAME(attacker) && IS_VALID_INGAME(victim) && !IsFakeClient(victim) )
         {
-            PrintToChatAll( "\x04%N\x01 leveled \x05%N\x01.", attacker, victim );
+            PrintToChatAll( "\x04%N\x01 fully leveled \x05%N\x01.", attacker, victim );
         }
         else if ( IS_VALID_INGAME(attacker) )
         {
-            PrintToChatAll( "\x04%N\x01 leveled a charger.", attacker );
+            PrintToChatAll( "\x04%N\x01 fully leveled a charger.", attacker );
         }
         else {
-            PrintToChatAll( "A charger was leveled." );
+            PrintToChatAll( "A charger was fully leveled." );
         }
     }
     
@@ -2513,11 +2513,11 @@ stock HandleDeadstop( attacker, victim )
     {
         if ( IS_VALID_INGAME(attacker) && IS_VALID_INGAME(victim) && !IsFakeClient(victim) )
         {
-            PrintToChatAll( "\x04%N\x01 deadstopped \x05%N\x01.", attacker, victim );
+            PrintToChatAll( "\x04%N\x01 m2'd \x05%N\x01.", attacker, victim );
         }
         else if ( IS_VALID_INGAME(attacker) )
         {
-            PrintToChatAll( "\x04%N\x01 deadstopped a hunter.", attacker );
+            PrintToChatAll( "\x04%N\x01 m2'd a hunter.", attacker );
         }
     }
     
@@ -2533,11 +2533,11 @@ stock HandleShove( attacker, victim, zombieClass )
     {
         if ( IS_VALID_INGAME(attacker) && IS_VALID_INGAME(victim) && !IsFakeClient(victim) )
         {
-            PrintToChatAll( "\x04%N\x01 shoved \x05%N\x01.", attacker, victim );
+            PrintToChatAll( "\x04%N\x01 m2'd \x05%N\x01.", attacker, victim );
         }
         else if ( IS_VALID_INGAME(attacker) )
         {
-            PrintToChatAll( "\x04%N\x01 shoved an SI.", attacker );
+            PrintToChatAll( "\x04%N\x01 m2'd an SI.", attacker );
         }
     }
     
@@ -2953,10 +2953,10 @@ stock HandleBHopStreak( survivor, streak, Float: maxVelocity )
             IS_VALID_INGAME(survivor) && !IsFakeClient(survivor) &&
             streak >= GetConVarInt(g_hCvarBHopMinStreak)
     ) {
-        PrintToChatAll( "\x04%N\x01 got \x05%i\x01 bunnyhop%s in a row (top speed: \x05%.1f\x01).",
+        PrintToChatAll( "\x04%N\x01 landed \x05%i\x01 BHOP%s (top speed: \x05%.1f\x01).",
                 survivor,
                 streak,
-                ( streak > 1 ) ? "s" : "",
+                ( streak > 1 ) ? "S" : "",
                 maxVelocity
             );
     }
