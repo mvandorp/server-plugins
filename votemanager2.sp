@@ -18,6 +18,7 @@ public Plugin:myinfo =
 };
 
 // cvar handles
+new Handle:alltalkAccess;
 new Handle:lobbyAccess;
 new Handle:difficultyAccess;
 new Handle:levelAccess;
@@ -56,6 +57,7 @@ public OnPluginStart()
 	RegConsoleCmd("veto", Veto_Handler);
 	RegConsoleCmd("passvote", PassVote_Handler);
 
+	alltalkAccess       = CreateConVar("l4d_vote_alltalk_access",         "",  "Access level needed to start a change all talk vote", CVAR_FLAGS);
 	lobbyAccess         = CreateConVar("l4d_vote_lobby_access",           "",  "Access level needed to start a return to lobby vote", CVAR_FLAGS);
 	difficultyAccess    = CreateConVar("l4d_vote_difficulty_access",      "",  "Access level needed to start a change difficulty vote", CVAR_FLAGS);
 	levelAccess         = CreateConVar("l4d_vote_level_access",           "",  "Access level needed to start a change level vote", CVAR_FLAGS);
@@ -178,6 +180,9 @@ public hasVoteAccess(client, String:voteName[32])
 	if (strcmp(voteName, "ReturnToLobby", false) == 0) {
 		GetConVarString(lobbyAccess, acclvl, sizeof(acclvl));
 	}
+	else if (strcmp(voteName, "ChangeAllTalk", false) == 0) {
+		GetConVarString(alltalkAccess, acclvl, sizeof(acclvl));
+	}
 	else if (strcmp(voteName, "ChangeDifficulty", false) == 0) {
 		GetConVarString(difficultyAccess, acclvl, sizeof(acclvl));
 	}
@@ -237,6 +242,7 @@ public isValidVote(String:voteName[32])
 {
 	if ((strcmp(voteName, "Kick", false) == 0) ||
 		(strcmp(voteName, "ReturnToLobby", false) == 0) ||
+		(strcmp(voteName, "ChangeAllTalk", false) == 0) ||
 		(strcmp(voteName, "ChangeDifficulty", false) == 0) ||
 		(strcmp(voteName, "ChangeMission", false) == 0) ||
 		(strcmp(voteName, "RestartGame", false) == 0) ||
