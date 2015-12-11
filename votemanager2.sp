@@ -315,14 +315,13 @@ public Action:Callvote_Handler(client, args)
 
 		// no more custom logic for votes, continue with normal vote behavior
 		LogVote(client, "started a %s vote", voteName);
-		Notify(client, "\x04[VOTE] \x01%s initiated a %s vote.", initiatorName, voteName);
 
 		return Plugin_Continue;
 	}
 	else {
 		// player does not have access to this vote
+		PrintToChat(client, "\x04[VOTE] You do not have sufficient access to start a %s vote.", voteName);
 		LogVote(client, "was prevented from starting a %s vote.  Reason: Access", voteName);
-		Notify(client, "\x04[VOTE] \x01%s tried to start a %s vote but does not have access.", initiatorName, voteName);
 
 		return Plugin_Handled;
 	}
@@ -350,7 +349,7 @@ public Action:Kick_Vote_Logic(client, args)
 	// check that the person targeted for kicking is actually a client
 	if (target <= 0 || !IsClientInGame(target)) {
 		LogVote(client, "was prevented from starting a Kick vote on client %s.  Reason: Invalid Target", arg2);
-		Notify(client, "\x04[VOTE] \x01%s tried to start a Kick Vote against %s but that is not a valid target.", initiatorName, arg2);
+		PrintToChat(client, "\x04[VOTE] \x01%s is not a valid target.", arg2);
 		PrintToChat(client, "\x04[VOTE] \x01If you are trying to call a manual kick vote the format is: 'callvote kick <user id>'");
 
 		return Plugin_Handled;
@@ -366,7 +365,7 @@ public Action:Kick_Vote_Logic(client, args)
 
 		if (StrContains(model, "hulk", false) > 0) {
 			LogVote(client, "was prevented from starting a Kick vote on %s.  Reason: Tank", targetName);
-			Notify(client, "\x04[VOTE] \x01%s tried to start a Kick Vote against %s but tanks cannot be kicked.", initiatorName, targetName);
+			PrintToChat(client, "\x04[VOTE] \x01Tanks cannot be kicked.");
 
 			return Plugin_Handled;
 		}
@@ -384,7 +383,7 @@ public Action:Kick_Vote_Logic(client, args)
 			if (!CanAdminTarget(clientAdminId, targetAdminId)) {
 				// client does not have permisison to kick target
 				LogVote(client, "was prevented from starting a Kick vote on %s.  Reason: Target Immunity", targetName);
-				Notify(client, "\x04[VOTE] \x01%s tried to start a Kick Vote against %s but he has immunity.", initiatorName, targetName);
+				PrintToChat(client, "\x04[VOTE] \x01%s has immunity.", targetName);
 
 				return Plugin_Handled;
 			}
@@ -442,7 +441,7 @@ public Action:Veto_Handler(client, args)
 	}
 
 	LogVote(client, "failed to veto vote. Reason: Access");
-	Notify(client, "\x04[VOTE] \x01%s tried to veto a vote but does not have access.", vetoerName);
+	PrintToChat(client, "\x04[VOTE] \x01You not have sufficient access to veto a vote.");
 
 	return Plugin_Handled;
 }
@@ -496,7 +495,7 @@ public Action:PassVote_Handler(client, args)
 	}
 
 	LogVote(client, "failed to veto vote. Reason: Access");
-	Notify(client, "\x04[VOTE] \x01%s tried to pass a vote but does not have access.", passerName);
+	PrintToChat(client, "\x04[VOTE] \x01You not have sufficient access to pass a vote.");
 
 	return Plugin_Handled;
 }
@@ -549,7 +548,7 @@ public Action:CustomVote_Handler(client, args)
 	}
 	else {
 		LogVote(client, "tried to start a Custom vote but one is already in progress.");
-		Notify(client, "\x04[VOTE] \x01%s tried starting a Custom vote but one is already in progress.", initiatorName);
+		PrintToChat(client, "\x04[VOTE] \x01You cannot start a vote until the current vote ends.");
 	}
 
 	return Plugin_Handled;
@@ -578,7 +577,6 @@ public Action:Custom_Vote_Logic(client, args)
 		FakeClientCommandEx(client, "Vote Yes");
 
 		LogVote(client, "started a Custom vote.");
-		Notify(client, "\x04[VOTE] \x01%s is starting a Custom vote.", initiatorName);
 
 		CreateTimer(30.0, EndCustomVote, client);
 
@@ -643,7 +641,6 @@ public Action:EndCustomVote(Handle:timer, any:client)
 			FireEvent(votePassEvent);
 
 			LogVote(client, "Custom vote passed. Vote:%s ", customVote);
-
 		}
 		else {
 			new Handle:voteFailEvent = CreateEvent("vote_failed");
