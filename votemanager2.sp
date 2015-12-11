@@ -343,14 +343,21 @@ public Action:Callvote_Handler(client, args)
 
 	if (!isValidVote(voteName))
 	{
-	       	PrintToChat(client,"\x04[VOTE] \x01Invalid vote type: %s",voteName);
-	       	LogVote(client, "tried to start an invalid vote type: %s", voteName);
-	       	return Plugin_Handled;
+		PrintToChat(client,"\x04[VOTE] \x01Invalid vote type: %s",voteName);
+		LogVote(client, "tried to start an invalid vote type: %s", voteName);
+		return Plugin_Handled;
 	}
 
 	if (isInVoteTimeout(client)){
-		LogVote(client, "cannot start a %s vote.  Reason: Timeout",voteName);
 		PrintToChat(client, "\x04[VOTE] \x01You must wait %.1f seconds between votes.",GetConVarFloat(voteTimeout));
+		LogVote(client, "cannot start a %s vote.  Reason: Timeout",voteName);
+		return Plugin_Handled;
+	}
+
+	if (GetClientTeam(client) == TEAM_SPECTATOR)
+	{
+		PrintToChat(client, "\x04[VOTE] \x01You cannot start a vote as spectator.");
+		LogVote(client, "cannot start a %s vote.  Reason: Timeout",voteName);
 		return Plugin_Handled;
 	}
 
@@ -447,15 +454,6 @@ public Action:Kick_Vote_Logic(client, args)
 			Notify(client,"\x04[VOTE] \x01%s tried to start a Kick Vote against %s but tanks cannot be kicked.",initiatorName,targetName);
 			return Plugin_Handled;
 		}
-	}
-
-	// Forbid Spectator team from kicking
-	if (GetClientTeam(client) == TEAM_SPECTATOR)
-	{
-		LogVote(client, "was prevented from starting a Kick vote on %s.  Reason: Spectator", targetName);
-		//PrintToChatAll("\x04[VOTE] \x01%s tried to start a Kick Vote against %s but spectators are not allowed to kick.",initiatorName,targetName);
-		Notify(client, "\x04[VOTE] \x01%s tried to start a Kick Vote against %s but spectators are not allowed to kick.",initiatorName,targetName);
-		return Plugin_Handled;
 	}
 
 	// If the "kickImmunity" flag is set, we have to check admin rights of the client and target
