@@ -31,9 +31,6 @@ new Handle:voteTimeout;
 new Handle:voteNoTimeoutAccess;
 new Handle:customAccess;
 new Handle:voteNotify;
-new Handle:survivalMap;
-new Handle:survivalLobby;
-new Handle:survivalRestart;
 new Handle:tankKickImmunity;
 
 new bool:inVoteTimeout[MAXPLAYERS+1];
@@ -72,9 +69,6 @@ public OnPluginStart()
 	sendToLog           = CreateConVar("l4d_vote_log",                    "0", "Log voting data",CVAR_FLAGS,true,0.0,true,1.0);
 	customAccess        = CreateConVar("l4d_custom_vote_access",          "z", "Access level needed to call custom votes.",CVAR_FLAGS);
 	voteNotify          = CreateConVar("l4d_vote_notify_access",          "",  "Who sees certain vote related notices. If blank everyone sees them.", CVAR_FLAGS);
-	survivalMap         = CreateConVar("l4d_vote_surv_map_access",        "",  "Access level needed to switch Survival maps.",CVAR_FLAGS);
-	survivalRestart     = CreateConVar("l4d_vote_surv_restart_access",    "",  "Access level needed to restart Survival maps.",CVAR_FLAGS);
-	survivalLobby       = CreateConVar("l4d_vote_surv_lobby_access",      "",  "Access level needed to return to lobby on Survival maps.",CVAR_FLAGS);
 	tankKickImmunity    = CreateConVar("l4d_vote_tank_kick_immunity",     "0", "Make tanks immune to vote kicking.",CVAR_FLAGS,true,0.0,true,1.0);
 
 	HookEvent("vote_started", EventVoteStart);
@@ -200,31 +194,21 @@ public hasVoteAccess(client, String:voteName[32])
 
 	GetConVarString(FindConVar("mp_gamemode"), gmode, sizeof(gmode));
 
-	new bool:survival = false;
-	if (strcmp(gmode, "survival", false) == 0)
-		survival=true;
-
 	if (strcmp(voteName,"ReturnToLobby",false) == 0) 
 	{
-		if (survival)
-			GetConVarString(survivalLobby,acclvl,sizeof(acclvl));
-		else
-			GetConVarString(lobbyAccess,acclvl,sizeof(acclvl));
+		GetConVarString(lobbyAccess,acclvl,sizeof(acclvl));
 	}
 	else if (strcmp(voteName,"ChangeDifficulty",false) == 0) 
 	{
 		GetConVarString(difficultyAccess,acclvl,sizeof(acclvl));
 	}
-	else if (strcmp(voteName,"ChangeMission",false) == 0) 
+	else if (strcmp(voteName,"ChangeMission",false) == 0 || strcmp(voteName,"ChangeChapter",false) == 0) 
 	{
 		GetConVarString(levelAccess,acclvl,sizeof(acclvl));
 	}
 	else if (strcmp(voteName,"RestartGame",false) == 0) 
 	{
-		if (survival)
-			GetConVarString(survivalRestart,acclvl,sizeof(acclvl));
-		else
-			GetConVarString(restartAccess,acclvl,sizeof(acclvl));
+		GetConVarString(restartAccess,acclvl,sizeof(acclvl));
 	}
 	else if (strcmp(voteName,"Kick",false) == 0) 
 	{
@@ -241,11 +225,6 @@ public hasVoteAccess(client, String:voteName[32])
 	else if (strcmp(voteName,"Custom",false) == 0) 
 	{
 		GetConVarString(customAccess,acclvl,sizeof(acclvl));
-	}
-	else if (strcmp(voteName,"ChangeChapter",false) == 0) 
-	{
-		// can chagnechapter be used outside of survival?
-		GetConVarString(survivalMap,acclvl,sizeof(acclvl));
 	}
 	// voteName does not match a known vote type
 	else return false;
@@ -304,28 +283,10 @@ public isValidVote(String:voteName[32]){
 
 public Action:Callvote_Handler(client, args)
 {
-
-	// return Plugin_Handled;  - to prevent the vote from going through
-	// return Plugin_Continue; - to allow the vote to go like normal
-
 	decl String:voteName[32];
 	decl String:initiatorName[MAX_NAME_LENGTH];
 	GetClientName(client, initiatorName, sizeof(initiatorName));
 	GetCmdArg(1,voteName,sizeof(voteName));
-
-
-	// test code
-	//decl String:fullCommand[256];
-	//GetCmdArgString(fullCommand, sizeof(fullCommand));
-	//PrintToChatAll("%s", fullCommand);
-
-	// vote examples:
-	// ChangeDifficulty Easy
-	// RestartGame
-	// ChangeMission Smalltown
-	// ChangeChapter 16
-	// callvote Kick <client #>
-
 
 	if (voteInProgress)
 	{
@@ -363,7 +324,6 @@ public Action:Callvote_Handler(client, args)
 
 	if (hasVoteAccess(client, voteName))
 	{
-
 		//  put them in timeout (even if vote won't go through)
 		inVoteTimeout[client]=true;
 
@@ -371,7 +331,6 @@ public Action:Callvote_Handler(client, args)
 		new Float:timeout = GetConVarFloat(voteTimeout);
 		if (timeout > 0.0)
 			CreateTimer(timeout, TimeOutOver, client);
-
 
 		// confirmed player has access to the vote type, now handle any logic for specific types of vote
 		// (currently only defined for kick votes)
