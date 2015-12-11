@@ -177,7 +177,7 @@ public LogVote(client,String:format[], any:...)
 		else
 		{
 			GetClientName(client,name,sizeof(name));
-			GetClientAuthString(client,steamid,sizeof(steamid));
+			GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid));
 		}
 
 		LogMessage("<%s><%s> %s",name,steamid,buffer);
