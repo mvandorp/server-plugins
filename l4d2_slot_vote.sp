@@ -73,8 +73,8 @@ public OnPluginStart()
 	g_cvarSlotsPluginEnabled = CreateConVar("sm_slot_vote_enabled", "1", "Enabled?", FCVAR_PLUGIN);
 	g_cvarSlotsAutoconf = CreateConVar("sm_slot_autoconf", "1", "Autoconfigure slots vote max|min cvars?", FCVAR_PLUGIN);
 	g_hCVarMinAllowedSlots = CreateConVar("sm_slot_vote_min", "8", "Minimum allowed number of server slots (this value must be equal or lesser than sm_slot_vote_max).", FCVAR_PLUGIN, true, 1.0, true, 32.0);
-	g_hCVarMaxAllowedSlots = CreateConVar("sm_slot_vote_max", "31", "Maximum allowed number of server slots (this value must be equal or greater than sm_slot_vote_min).", FCVAR_PLUGIN, true, 1.0, true, 32.0);
-	g_cvarCurrentMaxSlots = CreateConVar("sv_maxslots", "31", "Maximum server slots.", FCVAR_PLUGIN);
+	g_hCVarMaxAllowedSlots = CreateConVar("sm_slot_vote_max", "32", "Maximum allowed number of server slots (this value must be equal or greater than sm_slot_vote_min).", FCVAR_PLUGIN, true, 1.0, true, 32.0);
+	g_cvarCurrentMaxSlots = CreateConVar("sv_maxslots", "32", "Maximum server slots.", FCVAR_PLUGIN);
 	
 	g_hCVarVoteDuration = FindConVar("sv_vote_timer_duration");
 	g_hCVarVoteCommandDelay = FindConVar("sv_vote_command_delay");
@@ -129,49 +129,34 @@ public OnPluginStart()
 		PrintToServer("Min slots automatically configured to %d", GetConVarInt(hSurvivorLimit) * 2);
 		CloseHandle(hSurvivorLimit);
 	}
+
 	RegConsoleCmd("sm_slots", Cmd_SlotVote);
+	RegConsoleCmd("sm_maxslots", Cmd_SlotVote);
+	RegConsoleCmd("sm_limitslots", Cmd_SlotVote);
+
 	RegConsoleCmd("sm_nospec", Cmd_NoSpec);
 	RegConsoleCmd("sm_nospecs", Cmd_NoSpec);
 	RegConsoleCmd("sm_kickspec", Cmd_NoSpec);
 	RegConsoleCmd("sm_kickspecs", Cmd_NoSpec);
-	RegConsoleCmd("sm_maxslots", Cmd_MaxSlots);
-	RegServerCmd("sm_lock_slots", Cmd_LockSlots);
-	RegServerCmd("sm_unlock_slots", Cmd_UnLockSlots);
+
+	RegAdminCmd("sm_lockslots", Cmd_LockSlots, ADMFLAG_CONVARS | ADMFLAG_CONFIG | ADMFLAG_PASSWORD | ADMFLAG_RCON | ADMFLAG_CHEATS | ADMFLAG_ROOT);
+	RegAdminCmd("sm_unlockslots", Cmd_UnLockSlots, ADMFLAG_CONVARS | ADMFLAG_CONFIG | ADMFLAG_PASSWORD | ADMFLAG_RCON | ADMFLAG_CHEATS | ADMFLAG_ROOT);
 }
 
-public Action:Cmd_LockSlots(args) {	
+public Action:Cmd_LockSlots(int client, int args) {	
 	g_bSlotsLocked = true;
 	PrintToServer("Server slots count locked!");
 	PrintToChatAll("Server slots count locked!");
 	return Plugin_Handled;
 }
 
-public Action:Cmd_UnLockSlots(args) {
+public Action:Cmd_UnLockSlots(int client, int args) {
 	g_bSlotsLocked = false;
 	PrintToServer("[SM] Server slots count unlocked!");
 	PrintToChatAll("[SM] Server slots count unlocked!");
 	return Plugin_Handled;
 }
-public Action:Cmd_MaxSlots(client, args) {
-	decl String:buf[3];
-	if(client > 0) {
-		if(!GetAdminFlag(GetUserAdmin(client), Admin_Generic)) {
-			PrintToChat(client, "[SM] You are not allowed to use this command!");
-			return Plugin_Handled;
-		}
-	}
-	GetCmdArg(1, buf, sizeof(buf));
-	new slots = StringToInt(buf);
-	if(slots < 0 || slots > 32) return Plugin_Handled;
-	if(g_bSlotsLocked) {
-		g_bSlotsLocked = false;
-		SetConVarInt(g_cvarCurrentMaxSlots, slots);	
-		g_bSlotsLocked = true;
-	} else {
-		SetConVarInt(g_cvarCurrentMaxSlots, slots);
-	}
-	return Plugin_Handled;
-}
+
 #if defined _pause_included_
 public OnLibraryAdded(const String:name[])
 {
@@ -205,7 +190,7 @@ public CVarChangeMinAllowedSlots(Handle:hCVar, const String:sOldValue[], const S
 	if(!GetConVarBool(g_cvarSlotsPluginEnabled)) return;
 	g_iMinAllowedSlots = StringToInt(sNewValue);
 
-	if (g_iMinAllowedSlots > g_iMinAllowedSlots)
+	if (g_iMinAllowedSlots > g_iMaxAllowedSlots)
 	{
 		g_iMinAllowedSlots = g_iMaxAllowedSlots;
 	}
@@ -216,7 +201,7 @@ public CVarChangeMaxAllowedSlots(Handle:hCVar, const String:sOldValue[], const S
 	if(!GetConVarBool(g_cvarSlotsPluginEnabled)) return;
 	g_iMaxAllowedSlots = StringToInt(sNewValue);
 
-	if (g_iMinAllowedSlots > g_iMaxAllowedSlots)
+	if (g_iMaxAllowedSlots < g_iMinAllowedSlots)
 	{
 		g_iMaxAllowedSlots = g_iMinAllowedSlots;
 	}
@@ -231,6 +216,7 @@ public Action:ChangeTrueSlots_Timed(Handle:timer) {
 	SetConVarInt(g_cvarSvVisibleMaxPlayers, GetConVarInt(g_cvarCurrentMaxSlots));
 	return Plugin_Stop;
 }
+
 public CVarChangeVoteDuration(Handle:hCVar, const String:sOldValue[], const String:sNewValue[])
 {
 	g_iVoteDuration = StringToInt(sNewValue);
@@ -253,6 +239,7 @@ public SvVisibleMaxPlayers_Changed(Handle:cvar, const String:oldValue[], const S
 	SetConVarInt(g_hCVarMaxPlayersToolZ, GetConVarInt(g_cvarCurrentMaxSlots));
 	SetConVarInt(g_cvarSvVisibleMaxPlayers, GetConVarInt(g_cvarCurrentMaxSlots));
 }
+
 public Action:Cmd_SlotVote(iClient, iArgs)
 {
 	if(g_bSlotsLocked) {
