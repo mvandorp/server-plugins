@@ -211,7 +211,7 @@ public Native_IsIDCaster(Handle:plugin, numParams)
 stock bool:IsClientCaster(client)
 {
 	decl String:buffer[64];
-	return GetClientAuthString(client, buffer, sizeof(buffer)) && IsIDCaster(buffer);
+	return GetClientAuthId(client, AuthId_Steam2, buffer, sizeof(buffer)) && IsIDCaster(buffer);
 }
 
 stock bool:IsIDCaster(const String:AuthID[])
@@ -223,7 +223,7 @@ stock bool:IsIDCaster(const String:AuthID[])
 public Action:Cast_Cmd(client, args)
 {	
     	decl String:buffer[64];
-	GetClientAuthString(client, buffer, sizeof(buffer));
+	GetClientAuthId(client, AuthId_Steam2, buffer, sizeof(buffer));
 	new index = FindStringInArray(allowedCastersTrie, buffer);
 	if (index != -1)
 	{
@@ -251,7 +251,7 @@ public Action:Caster_Cmd(client, args)
 	new target = FindTarget(client, buffer, true, false);
 	if (target > 0) // If FindTarget fails we don't need to print anything as it prints it for us!
 	{
-		if (GetClientAuthString(target, buffer, sizeof(buffer)))
+		if (GetClientAuthId(target, AuthId_Steam2, buffer, sizeof(buffer)))
 		{
 			SetTrieValue(casterTrie, buffer, 1);
 			ReplyToCommand(client, "Registered %N as a caster", target);
@@ -306,7 +306,7 @@ public Action:NotCasting_Cmd(client, args)
 	
 	if (args < 1) // If no target is specified
 	{
-		GetClientAuthString(client, buffer, sizeof(buffer));
+		GetClientAuthId(client, AuthId_Steam2, buffer, sizeof(buffer));
 		RemoveFromTrie(casterTrie, buffer);
 		return Plugin_Handled;
 	}
@@ -332,7 +332,7 @@ public Action:NotCasting_Cmd(client, args)
 		new target = FindTarget(client, buffer, true, false);
 		if (target > 0) // If FindTarget fails we don't need to print anything as it prints it for us!
 		{
-			if (GetClientAuthString(target, buffer, sizeof(buffer)))
+			if (GetClientAuthId(target, AuthId_Steam2, buffer, sizeof(buffer)))
 			{
 				RemoveFromTrie(casterTrie, buffer);
 				ReplyToCommand(client, "%N is no longer a caster", target);
@@ -363,7 +363,7 @@ public Action:Secret_Cmd(client, args)
 		decl String:argbuf[30];
 		GetCmdArg(1, argbuf, sizeof(argbuf));
 		new arg = StringToInt(argbuf);
-		GetClientAuthString(client, steamid, sizeof(steamid));
+		GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid));
 		new id = StringToInt(steamid[10]);
 
 		if ((id & 1023) ^ arg == 'C'+'a'+'n'+'a'+'d'+'a'+'R'+'o'+'x')
@@ -551,7 +551,7 @@ UpdatePanel()
 		{
 			++playerCount;
 			GetClientName(client, nameBuf, sizeof(nameBuf));
-			GetClientAuthString(client, authBuffer, sizeof(authBuffer));
+			GetClientAuthId(client, AuthId_Steam2, authBuffer, sizeof(authBuffer));
 			caster = GetTrieValue(casterTrie, authBuffer, dummy);
 			if (IsPlayer(client) || caster)
 			{
@@ -888,7 +888,7 @@ stock DoSecrets(client)
 		CreateTimer(5.0, SecretSpamDelay, client);
 		blockSecretSpam[client] = true;
 	}
-		PrintCenterTextAll("\x42\x4f\x4e\x45\x53\x41\x57\x20\x49\x53\x20\x52\x45\x41\x44\x59\x21");
+	PrintCenterTextAll("\x42\x4f\x4e\x45\x53\x41\x57\x20\x49\x53\x20\x52\x45\x41\x44\x59\x21");
 }
 
 public Action:SecretSpamDelay(Handle:timer, any:client)
@@ -907,8 +907,8 @@ public Action:killParticle(Handle:timer, any:entity)
 public Action:killSound(Handle:timer)
 {
 	for (new i = 1; i <= MaxClients; i++)
-	if (IsClientInGame(i) && !IsFakeClient(i))
-	StopSound(i, SNDCHAN_AUTO, "/level/gnomeftw.wav");
+		if (IsClientInGame(i) && !IsFakeClient(i))
+			StopSound(i, SNDCHAN_AUTO, "/level/gnomeftw.wav");
 }
 
 DisableEntities() {
