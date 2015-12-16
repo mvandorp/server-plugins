@@ -33,7 +33,7 @@ public Plugin myinfo =
     name = "Logger",
     author = "Martijn",
     description = "Logs things.",
-    version = "0.7b",
+    version = "0.8",
     url = "http://www.sourcemod.net/"
 };
 
@@ -83,8 +83,12 @@ static int LogPlayerId(const char[] steamid)
 
 static void LogPlayerIP(int playerid, const char[] ip)
 {
+    // Get the current date and time
+    char datetime[MAX_DATETIME_LENGTH];
+    FormatTime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S");
+
     char query[256];
-    Format(query, sizeof(query), "INSERT IGNORE INTO sb_player_ips (playerid, ip) VALUES (%d, '%s')", playerid, ip);
+    Format(query, sizeof(query), "INSERT INTO sb_player_ips (playerid, ip, last_seen) VALUES (%d, '%s', '%s') ON DUPLICATE KEY UPDATE last_seen = '%s'", playerid, ip, datetime, datetime);
 
     g_hDatabase.Query(OnQueryCompleted, query);
 }
@@ -253,6 +257,7 @@ static void CreateTables(Database database)
         "CREATE TABLE IF NOT EXISTS sb_player_ips (\
             playerid INT NOT NULL,\
             ip VARCHAR(15) NOT NULL,\
+            last_seen DATETIME NOT NULL,\
             PRIMARY KEY (playerid, ip),\
             FOREIGN KEY (playerid) REFERENCES sb_player_ids(id) ON DELETE CASCADE\
         ) DEFAULT CHARSET=utf8;");
