@@ -2461,14 +2461,14 @@ stock HandleLevel( attacker, victim )
     {
         if ( IS_VALID_INGAME(attacker) && IS_VALID_INGAME(victim) && !IsFakeClient(victim) )
         {
-            PrintToChatAll( "\x04%N\x01 fully leveled \x05%N\x01.", attacker, victim );
+            PrintToChatAll( "\x04%N\x01 leveled \x05%N\x01.", attacker, victim );
         }
         else if ( IS_VALID_INGAME(attacker) )
         {
-            PrintToChatAll( "\x04%N\x01 fully leveled a charger.", attacker );
+            PrintToChatAll( "\x04%N\x01 leveled a charger.", attacker );
         }
         else {
-            PrintToChatAll( "A charger was fully leveled." );
+            PrintToChatAll( "A charger was leveled." );
         }
     }
     
