@@ -108,7 +108,7 @@ public OnClientPostAdminCheck(client)
 	if(CanUseSourcebans && !IsFakeClient(client))
 	{
 		new String:steamid[32];
-		GetClientAuthString(client, steamid, sizeof(steamid));
+		GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid));
 		
 		if (GetConVarBool(g_cVar_bypass) && CheckCommandAccess(client, "sleuth_admin", ADMFLAG_BAN, false)) 
 		{
@@ -125,7 +125,7 @@ public OnClientPostAdminCheck(client)
 			
 			if(GetConVarInt(g_cVar_bantype) == 0)
 			{
-				FormatEx(query, sizeof(query),  "SELECT * FROM %s_bans WHERE ip='%s' AND RemoveType IS NULL AND ends > %d", Prefix, IP, GetTime());
+				FormatEx(query, sizeof(query),  "SELECT * FROM %s_bans WHERE ip='%s' AND RemoveType IS NULL AND (length='0' OR ends > %d)", Prefix, IP, GetTime());
 			}
 			else
 			{
