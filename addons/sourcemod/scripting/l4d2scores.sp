@@ -142,8 +142,6 @@ public OnPluginStart()
 	* Commands
 	*/
 	RegServerCmd("changelevel", Command_Changelevel);
-	RegConsoleCmd("sm_printscores", Command_PrintScores, "sm_printscores");
-	RegConsoleCmd("sm_scores", Command_Scores, "sm_scores - bring up a list of round scores");
 	
 	RegAdminCmd("sm_swap", Command_Swap, ADMFLAG_BAN, "sm_swap <player1> [player2] ... [playerN] - swap all listed players to opposite teams");
 	RegAdminCmd("sm_swapto", Command_SwapTo, ADMFLAG_BAN, "sm_swapto <player1> [player2] ... [playerN] <teamnum> - swap all listed players to <teamnum> (1,2, or 3)");
@@ -1637,82 +1635,6 @@ public Action:Command_Changelevel(args)
 	return Plugin_Continue;
 }
 
-public Action:Command_PrintScores(client, args)
-{
-	DebugPrintToAll("Command_PrintScores, mapCounter = %d", mapCounter);
-	
-	new i, scores[2], curscore, scoresSize = GetArraySize(mapScores);
-	PrintToChatAll("[SM] Printing map scores:");
-	
-	PrintToChatAll("Lobby Survivors: ");
-	for(i = 0; i < scoresSize; i++)
-	{
-		GetArrayArray(mapScores, i, scores);
-		
-		curscore = scores[0];
-		
-		PrintToChatAll("%d. %d", i+1, curscore);
-	}
-	PrintToChatAll("- Campaign: %d", LastKnownScoreTeamA);
-	
-	PrintToChatAll("Lobby Infected: ");
-	for(i = 0; i < scoresSize; i++)
-	{
-		GetArrayArray(mapScores, i, scores);
-		
-		curscore = scores[1];
-		
-		PrintToChatAll("%d. %d", i+1, curscore);
-	}
-	PrintToChatAll("- Campaign: %d", LastKnownScoreTeamB);
-	
-	return Plugin_Handled;
-}
-
-//show a menu of round and total scores
-public Action:Command_Scores(client, args)
-{
-	DebugPrintToAll("Command_Scores, mapCounter = %d", mapCounter);
-	
-	new Handle:panel = CreatePanel();
-	decl String:panelLine[1024];
-	
-	new i, scores[2], curscore, scoresSize = GetArraySize(mapScores);
-	
-	DrawPanelText(panel, "Team Scores");
-	DrawPanelText(panel, " ");
-	
-	Format(panelLine, sizeof(panelLine), "SURVIVORS (%d)", LastKnownScoreTeamA);
-	DrawPanelText(panel, panelLine);
-	for(i = 0; i < scoresSize; i++)
-	{
-		GetArrayArray(mapScores, i, scores);
-		
-		curscore = scores[0];
-		
-		Format(panelLine, sizeof(panelLine), "->%d. %d", i+1, curscore);
-		DrawPanelText(panel, panelLine);
-	}
-	
-	DrawPanelText(panel, " ");
-	Format(panelLine, sizeof(panelLine), "INFECTED (%d)", LastKnownScoreTeamB);
-	DrawPanelText(panel, panelLine);
-	for(i = 0; i < scoresSize; i++)
-	{
-		GetArrayArray(mapScores, i, scores);
-		
-		curscore = scores[1];
-		
-		Format(panelLine, sizeof(panelLine), "->%d. %d", i+1, curscore);
-		DrawPanelText(panel, panelLine);
-	}
-	
-	SendPanelToClient(panel, client, Menu_ScorePanel, SCORE_LIST_PANEL_LIFETIME);	
-	
-	CloseHandle(panel);
-	
-	return Plugin_Handled;
-}
 public Menu_ScorePanel(Handle:menu, MenuAction:action, param1, param2) { return; }
 
 
