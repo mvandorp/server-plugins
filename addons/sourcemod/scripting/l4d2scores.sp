@@ -621,7 +621,7 @@ public Action:Command_Swap(client, args)
 			continue;
 		
 		decl String:authid[128], team;
-		GetClientAuthString(player_id, authid, sizeof(authid));
+		GetClientAuthId(player_id, AuthId_Steam2, authid, sizeof(authid));
 		if(GetTrieValue(teamPlacementTrie, authid, team))
 			RemoveFromTrie(teamPlacementTrie, authid);
 		
@@ -665,7 +665,7 @@ public Action:Command_SwapTo(client, args)
 			continue;
 		
 		decl String:authid[128];
-		GetClientAuthString(player_id, authid, sizeof(authid));
+		GetClientAuthId(player_id, AuthId_Steam2, authid, sizeof(authid));
 		if(GetTrieValue(teamPlacementTrie, authid, team))
 			RemoveFromTrie(teamPlacementTrie, authid);
 		
@@ -943,7 +943,7 @@ CalculateNextMapTeamPlacement()
 	{
 		if(IsClientInGameHuman(i)) 
 		{
-			GetClientAuthString(i, authid, sizeof(authid));
+			GetClientAuthId(i, AuthId_Steam2, authid, sizeof(authid));
 			team = GetClientTeamForNextMap(i, pendingSwapScores, AreTeamsFlipped);
 			
 			DebugPrintToAll("Next map will place %N, now %d, to %d", i, GetClientTeam(i), team);
@@ -969,7 +969,7 @@ public Action:Event_PlayerTeam(Handle:event, const String:name[], bool:dontBroad
 	if(!IsClientInGameHuman(client)) return;
 
 	decl team, String:authid[256];
-	GetClientAuthString(client, authid, sizeof(authid));
+	GetClientAuthId(client, AuthId_Steam2, authid, sizeof(authid));
 		
 	if(GetTrieValue(teamPlacementTrie, authid, team))
 	{
@@ -1916,7 +1916,7 @@ public Action:Command_SwapNext(client, args)
 	{
 		if(IsClientInGameHuman(i)) 
 		{
-			GetClientAuthString(i, authid, sizeof(authid));
+			GetClientAuthId(i, AuthId_Steam2, authid, sizeof(authid));
 			team = GetOppositeClientTeam(i);
 			
 			DebugPrintToAll("Next map will place %N to %d", i, team);
@@ -2080,9 +2080,8 @@ GetRoundCounter(bool:increment_counter=false, bool:reset_counter=false)
 * Checks left4downtown_version cvar
 */
 
-CheckDependencyVersions(bool:throw=false)
+CheckDependencyVersions(bool:shouldThrow=false)
 {
-	#if !SCORE_DEBUG
 	if(!IsLeft4DowntownVersionValid())
 	{
 		decl String:version[64];
@@ -2097,17 +2096,10 @@ CheckDependencyVersions(bool:throw=false)
 		}
 		
 		PrintToChatAll("[L4D SCORE] Your Left4Downtown Extension (%s) is out of date, please upgrade to %s or later", version, SCORE_VERSION_REQUIRED_LEFT4DOWNTOWN);
-		if(throw)
+		if(shouldThrow)
 			ThrowError("Your Left4Downtown Extension (%s) is out of date, please upgrade to %s or later", version, SCORE_VERSION_REQUIRED_LEFT4DOWNTOWN);
 		return;
 	}
-	#else
-	//suppress warnings
-	if(throw && !throw)
-	{
-		IsLeft4DowntownVersionValid();
-	}
-	#endif
 }
 
 bool:IsLeft4DowntownVersionValid()
