@@ -1,6 +1,9 @@
 #include <sourcemod>
 #include <sdktools>
 #include "left4downtown.inc"
+#include <builtinvotes>
+#undef REQUIRE_PLUGIN
+#tryinclude <pause>
 
 #define SCORE_VERSION "1.3.0"
 
@@ -24,8 +27,6 @@
 
 #define SCORE_VERSION_REQUIRED_LEFT4DOWNTOWN "0.5.2.3"
 
-#define L4D_MAXCLIENTS MaxClients
-#define L4D_MAXCLIENTS_PLUS1 (L4D_MAXCLIENTS + 1)
 #define L4D_TEAM_SURVIVORS 2
 #define L4D_TEAM_INFECTED 3
 #define L4D_TEAM_SPECTATE 1
@@ -72,6 +73,8 @@ new Handle:cvarVoteScrambling = INVALID_HANDLE;
 new Handle:cvarFullResetOnEmpty = INVALID_HANDLE;
 new Handle:cvarGameMode = INVALID_HANDLE;
 new Handle:cvarGameModeActive = INVALID_HANDLE;
+new Handle:cvarVoteDuration = INVALID_HANDLE;
+new Handle:cvarVoteCommandDelay = INVALID_HANDLE;
 
 new roundScores[3];    //store the round score, ignore index 0
 new Handle:mapScores = INVALID_HANDLE;
@@ -103,6 +106,9 @@ new Handle:fSwapTeams = INVALID_HANDLE;
 new Handle:fAreTeamsFlipped = INVALID_HANDLE;
 new Handle:fRestart = INVALID_HANDLE;
 
+#if defined _pause_included_
+static bool:g_bPause_Lib;
+#endif
 
 enum TeamSwappingType
 {
@@ -149,8 +155,14 @@ public OnPluginStart()
 	
 	RegAdminCmd("sm_antirage", Command_AntiRage, ADMFLAG_BAN, "sm_antirage - swap teams and scores");
 	RegAdminCmd("sm_scrambleteams", Command_ScrambleTeams, ADMFLAG_BAN, "sm_scrambleteams - swap the players randomly between both teams");
+	RegAdminCmd("sm_forcescramble", Command_ScrambleTeams, ADMFLAG_BAN, "sm_scrambleteams - swap the players randomly between both teams");
+	RegAdminCmd("sm_forceshuffle", Command_ScrambleTeams, ADMFLAG_BAN, "sm_scrambleteams - swap the players randomly between both teams");
+	RegAdminCmd("sm_forcemix", Command_ScrambleTeams, ADMFLAG_BAN, "sm_scrambleteams - swap the players randomly between both teams");
 	RegAdminCmd("sm_lockteams", Command_LockTeams, ADMFLAG_BAN, "sm_lockteams - keep players in their assigned teams");
 	RegConsoleCmd("sm_votescramble", Request_ScrambleTeams, "Allows Clients to call Scramble votes");
+	RegConsoleCmd("sm_scramble", Request_ScrambleTeams, "Allows Clients to call Scramble votes");
+	RegConsoleCmd("sm_shuffle", Request_ScrambleTeams, "Allows Clients to call Scramble votes");
+	RegConsoleCmd("sm_mix", Request_ScrambleTeams, "Allows Clients to call Scramble votes");
 	
 	RegAdminCmd("sm_resetscores", Command_ResetScores, ADMFLAG_BAN, "sm_resetscores - reset the currently tracked map scores");
 	
@@ -165,7 +177,9 @@ public OnPluginStart()
 	cvarFullResetOnEmpty = CreateConVar("l4d2_full_reset_on_empty", "0", " does the server load a new map when empty, fully resetting itself ", FCVAR_PLUGIN|FCVAR_NOTIFY);
 	cvarGameModeActive = CreateConVar("l4d2_scores_gamemodesactive", "versus,teamversus,mutation12", " Set the game modes for which the plugin should be activated (same usage as sv_gametypes, i.e. add all game modes where you want it active separated by comma) ");
 	cvarGameMode = FindConVar("mp_gamemode");
-	
+	cvarVoteDuration = FindConVar("sv_vote_timer_duration");
+	cvarVoteCommandDelay = FindConVar("sv_vote_command_delay");
+
 	/*
 	* ADT Handles
 	*/
@@ -508,7 +522,7 @@ public Action:SurvivalTeamSwap(Handle:timer)
 	ClearTeamPlacement();
 
 	PrintToChatAll("[SM] Survivor and Infected teams have been swapped.");
-	for(new i = 1; i < L4D_MAXCLIENTS_PLUS1; i++)
+	for(new i = 1; i <= MaxClients; i++)
 	{
 		if(IsClientInGameHuman(i) && GetClientTeam(i) != L4D_TEAM_SPECTATE)
 		{
@@ -565,7 +579,7 @@ public Action:Command_SwapTeams(client, args)
 
 	PrintToChatAll("[SM] Survivor and Infected teams have been swapped.");
 	
-	for(new i = 1; i < L4D_MAXCLIENTS_PLUS1; i++)
+	for(new i = 1; i <= MaxClients; i++)
 	{
 		if(IsClientInGameHuman(i) && GetClientTeam(i) != L4D_TEAM_SPECTATE)
 		{
@@ -582,7 +596,7 @@ public Action:Command_AntiRage(client, args)
 {
 	ClearTeamPlacement();
 	
-	for(new i = 1; i < L4D_MAXCLIENTS_PLUS1; i++)
+	for(new i = 1; i <= MaxClients; i++)
 	{
 		if(IsClientInGameHuman(i) && GetClientTeam(i) != L4D_TEAM_SPECTATE)
 		{
@@ -937,7 +951,7 @@ CalculateNextMapTeamPlacement()
 	
 	decl String:authid[128], team;
 	
-	for(new i = 1; i < L4D_MAXCLIENTS_PLUS1; i++) 
+	for(new i = 1; i <= MaxClients; i++) 
 	{
 		if(IsClientInGameHuman(i)) 
 		{
@@ -1080,7 +1094,7 @@ TryTeamPlacement()
 	* Try to place people on the teams they should be on.
 	*/
 	
-	for(new i = 1; i < L4D_MAXCLIENTS_PLUS1; i++) 
+	for(new i = 1; i <= MaxClients; i++) 
 	{
 		if(IsClientInGameHuman(i)) 
 		{
@@ -1175,7 +1189,7 @@ TryTeamPlacement()
 
 ClearTeamPlacement()
 {
-	for(new i = 1; i < L4D_MAXCLIENTS_PLUS1; i++) 
+	for(new i = 1; i <= MaxClients; i++) 
 	{
 		teamPlacementArray[i] = 0;
 		teamPlacementAttempts[i] = 0;
@@ -1386,10 +1400,10 @@ stock bool:ChangePlayerTeam(client, team)
 	new bot;
 	//for survivors its more tricky
 	for(bot = 1; 
-	bot < L4D_MAXCLIENTS_PLUS1 && (!IsClientConnected(bot) || !IsFakeClient(bot) || (GetClientTeam(bot) != L4D_TEAM_SURVIVORS));
+	bot <= MaxClients && (!IsClientConnected(bot) || !IsFakeClient(bot) || (GetClientTeam(bot) != L4D_TEAM_SURVIVORS));
 	bot++) {}
 	
-	if(bot == L4D_MAXCLIENTS_PLUS1)
+	if(bot > MaxClients)
 	{
 		DebugPrintToAll("Could not find a survivor bot, adding a bot ourselves");
 		
@@ -1423,7 +1437,7 @@ stock GetTeamHumanCount(team)
 {
 	new humans = 0;
 	
-	for(new i = 1; i < L4D_MAXCLIENTS_PLUS1; i++)
+	for(new i = 1; i <= MaxClients; i++)
 	{
 		if(IsClientInGameHuman(i) && GetClientTeam(i) == team)
 		{
@@ -1446,7 +1460,7 @@ stock GetTeamMaxHumans(team)
 	}
 	else if(team == L4D_TEAM_SPECTATE)
 	{
-		return L4D_MAXCLIENTS;
+		return MaxClients;
 	}
 	
 	return -1;
@@ -1488,30 +1502,28 @@ public Action:Command_ScrambleTeams(client, args)
 	return Plugin_Handled;
 }
 
-new bool:VoteWasDone;
-
 public Action:Request_ScrambleTeams(client, args)
 {
-	if (!GetConVarBool(cvarVoteScrambling))
-	{
-		ReplyToCommand(client, "The server currently does not allow vote scrambling.");
+	if (!GetConVarBool(cvarVoteScrambling)) {
 		return Plugin_Handled;
 	}
 
-	if (!VoteWasDone)
+#if defined _pause_included_
+	if (g_bPause_Lib && IsInPause())
 	{
-		DisplayScrambleVote();
-		VoteWasDone = true;
-		CreateTimer(60.0, ResetVoteDelay, 0);
+		return Plugin_Handled;
 	}
-	else ReplyToCommand(client, "Vote was called already.");
-	
-	return Plugin_Handled;
-}
+#endif
 
-public Action:ResetVoteDelay(Handle:timer)
-{
-	VoteWasDone = false;
+	if (GetClientTeam(client) == L4D_TEAM_SPECTATE)
+	{
+		PrintToChat(client, "Spectators cannot call votes.");
+		return Plugin_Handled;
+	}
+
+	CreateTimer(0.1, Timer_StartScrabmleVote, client, TIMER_FLAG_NO_MAPCHANGE);
+
+	return Plugin_Handled;
 }
 
 stock ScrambleTeams()
@@ -1521,7 +1533,7 @@ stock ScrambleTeams()
 	new humanplayers, infplayers, players;
 	
 	// get ingame player count
-	for(new i = 1; i < L4D_MAXCLIENTS_PLUS1; i++)
+	for(new i = 1; i <= MaxClients; i++)
 	{
 		if(IsClientInGameHuman(i) && GetClientTeam(i) != L4D_TEAM_SPECTATE)
 			players++;
@@ -1529,7 +1541,7 @@ stock ScrambleTeams()
 	// half of that
 	players = players/2;
 	
-	for(new i = 1; i < L4D_MAXCLIENTS_PLUS1; i++)
+	for(new i = 1; i <= MaxClients; i++)
 	{
 		if(IsClientInGameHuman(i) && GetClientTeam(i) != L4D_TEAM_SPECTATE)
 		{
@@ -1568,53 +1580,91 @@ stock ScrambleTeams()
 	TryTeamPlacementDelayed();
 }
 
-new Handle:ScrambleVoteMenu = INVALID_HANDLE;
+Handle g_hScrambleVote = INVALID_HANDLE;
 
-DisplayScrambleVote()
+public Action Timer_StartScrabmleVote(Handle timer, any client)
 {
-	ScrambleVoteMenu = CreateMenu(Handler_VoteCallback, MenuAction:MENU_ACTIONS_ALL);
-	SetMenuTitle(ScrambleVoteMenu, "Do you want teams scrambled?");
-	
-	AddMenuItem(ScrambleVoteMenu, "0", "No");
-	AddMenuItem(ScrambleVoteMenu, "1", "Yes");
-	
-	SetMenuExitButton(ScrambleVoteMenu, false);
-	
-	VoteMenuToAll(ScrambleVoteMenu, 20);
+	if (IsClientInGame(client) && GetClientTeam(client) != L4D_TEAM_SPECTATE) {
+		StartScrabmleVote(client);
+	}
+
+	return Plugin_Stop;
 }
 
-Float:GetVotePercent(votes, totalVotes)
+StartScrabmleVote(int client)
 {
-	return FloatDiv(float(votes), float(totalVotes));
+	if (GetClientTeam(client) == L4D_TEAM_SPECTATE) {
+		PrintToChat(client, "Spectators cannot call votes.");
+		return;
+	}
+
+	if (IsNewBuiltinVoteAllowed()) {
+		int numPlayers;
+		int[] players = new int[MaxClients];
+		int voteDuration = GetConVarInt(cvarVoteDuration);
+
+		for (int i = 1; i <= MaxClients; i++) {
+			if (!IsClientInGameHuman(i) || GetClientTeam(i) == L4D_TEAM_SPECTATE) {
+				continue;
+			}
+
+			players[numPlayers++] = i;
+		}
+
+		g_hScrambleVote = CreateBuiltinVote(ScrambleVoteActionHandler, BuiltinVoteType_Custom_YesNo, BuiltinVoteAction_Cancel | BuiltinVoteAction_VoteEnd | BuiltinVoteAction_End);
+
+		SetBuiltinVoteArgument(g_hScrambleVote, "Scramble teams?");
+		SetBuiltinVoteInitiator(g_hScrambleVote, client);
+		SetBuiltinVoteResultCallback(g_hScrambleVote, ScrambleVoteResultHandler);
+		DisplayBuiltinVote(g_hScrambleVote, players, numPlayers, voteDuration);
+
+		FakeClientCommand(client, "Vote Yes");
+		return;
+	}
+
+	PrintToChat(client, "%t", "Vote denied");
 }
 
-public Handler_VoteCallback(Handle:menu, MenuAction:action, param1, param2)
+public ScrambleVoteActionHandler(Handle vote, BuiltinVoteAction action, param1, param2)
 {
-	if (action == MenuAction_End)
+	switch (action)
 	{
-		CloseHandle(ScrambleVoteMenu);
+		case BuiltinVoteAction_End:
+		{
+			g_hScrambleVote = INVALID_HANDLE;
+			CloseHandle(vote);
+		}
+
+		case BuiltinVoteAction_Cancel:
+		{
+			DisplayBuiltinVoteFail(vote, BuiltinVoteFailReason:param1);
+		}
 	}
-	
-	else if (action == MenuAction_VoteCancel && param1 == VoteCancel_NoVotes)
-	{
-		PrintToChatAll("No votes detected on the scramble vote.");
+}
+
+public ScrambleVoteResultHandler(Handle vote, int numVotes, int numClients, const clientInfo[][2], int numItems, const itemInfo[][2])
+{
+	float voteCommandDelay = GetConVarFloat(cvarVoteCommandDelay);
+
+	for (int i = 0; i < numItems; i++) {
+		if (itemInfo[i][BUILTINVOTEINFO_ITEM_INDEX] == BUILTINVOTES_VOTE_YES) {
+			if (itemInfo[i][BUILTINVOTEINFO_ITEM_VOTES] > (numClients / 2)) {
+				DisplayBuiltinVotePass(vote, "Teams scrambled");
+
+				CreateTimer(voteCommandDelay, Timer_ScrambleTeams, _, TIMER_FLAG_NO_MAPCHANGE);
+				return;
+			}
+		}
 	}
-	
-	else if (action == MenuAction_VoteEnd)
-	{
-		decl String:item[256], String:display[256], Float:percent;
-		new votes, totalVotes;
-		
-		GetMenuVoteInfo(param2, votes, totalVotes);
-		GetMenuItem(menu, param1, item, sizeof(item), _, display, sizeof(display));
-		
-		percent = GetVotePercent(votes, totalVotes);
-		
-		PrintToChatAll("Scramble vote successful: %s (Received %i%% of %i votes)", display, RoundToNearest(100.0*percent), totalVotes);
-		
-		new winner = StringToInt(item);
-		if (winner) ScrambleTeams();
-	}
+
+	DisplayBuiltinVoteFail(vote, BuiltinVoteFail_Loses);
+}
+
+public Action Timer_ScrambleTeams(Handle timer)
+{
+	ScrambleTeams();
+
+	return Plugin_Stop;
 }
 
 /*
@@ -1634,9 +1684,6 @@ public Action:Command_Changelevel(args)
 	}
 	return Plugin_Continue;
 }
-
-public Menu_ScorePanel(Handle:menu, MenuAction:action, param1, param2) { return; }
-
 
 /*
 * SWAP MENU FUNCTIONALITY
@@ -1681,7 +1728,7 @@ public Action:Command_SwapMenu(client, args)
 		new teamCount = GetTeamHumanCount(team);
 		
 		new numPlayers = 0;
-		for(new j = 1; j < L4D_MAXCLIENTS_PLUS1; j++)
+		for(new j = 1; j <= MaxClients; j++)
 		{
 			if(IsClientInGameHuman(j) && GetClientTeam(j) == team)
 			{
@@ -1802,7 +1849,7 @@ public Action:Timer_DisplaySwapMenu(Handle:timer, any:client)
 
 public Action:Command_PrintPlacement(client, args)
 {
-	for(new i = 1; i < L4D_MAXCLIENTS_PLUS1; i++)
+	for(new i = 1; i <= MaxClients; i++)
 	{
 		if(teamPlacementArray[i])
 		{
@@ -1834,7 +1881,7 @@ public Action:Command_SwapNext(client, args)
 	new i;
 	
 	new team;
-	for(i = 1; i < L4D_MAXCLIENTS_PLUS1; i++) 
+	for(i = 1; i <= MaxClients; i++) 
 	{
 		if(IsClientInGameHuman(i)) 
 		{
