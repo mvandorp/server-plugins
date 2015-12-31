@@ -26,6 +26,7 @@
 #include <colors>
 #undef REQUIRE_PLUGIN
 #tryinclude <pause>
+
 static Handle:g_hCVarMinAllowedSlots;
 static Handle:g_hCVarMaxAllowedSlots;
 
@@ -96,6 +97,7 @@ public OnPluginStart()
 	HookConVarChange(g_hCVarVoteCommandDelay, CVarChangeVoteCommandDelay);
 	HookConVarChange(g_cvarCurrentMaxSlots, CurrentMaxSlots_Changed);
 	HookConVarChange(g_cvarSvVisibleMaxPlayers, SvVisibleMaxPlayers_Changed);
+
 	if (g_hCVarMaxPlayersDowntown != INVALID_HANDLE)
 	{
 		g_iCurrentSlots = GetConVarInt(g_hCVarMaxPlayersDowntown);
@@ -123,7 +125,7 @@ public OnPluginStart()
 	{
 		g_iCurrentSlots = 8;
 	}
-	if(GetConVarBool(g_cvarSlotsAutoconf)) {
+	if (GetConVarBool(g_cvarSlotsAutoconf)) {
 		new Handle:hSurvivorLimit = FindConVar("survivor_limit");
 		SetConVarInt(g_hCVarMinAllowedSlots, GetConVarInt(hSurvivorLimit) * 2);
 		PrintToServer("Min slots automatically configured to %d", GetConVarInt(hSurvivorLimit) * 2);
@@ -187,7 +189,7 @@ public OnAllPluginsLoaded()
 
 public CVarChangeMinAllowedSlots(Handle:hCVar, const String:sOldValue[], const String:sNewValue[])
 {
-	if(!GetConVarBool(g_cvarSlotsPluginEnabled)) return;
+	if (!GetConVarBool(g_cvarSlotsPluginEnabled)) return;
 	g_iMinAllowedSlots = StringToInt(sNewValue);
 
 	if (g_iMinAllowedSlots > g_iMaxAllowedSlots)
@@ -198,7 +200,7 @@ public CVarChangeMinAllowedSlots(Handle:hCVar, const String:sOldValue[], const S
 
 public CVarChangeMaxAllowedSlots(Handle:hCVar, const String:sOldValue[], const String:sNewValue[])
 {
-	if(!GetConVarBool(g_cvarSlotsPluginEnabled)) return;
+	if (!GetConVarBool(g_cvarSlotsPluginEnabled)) return;
 	g_iMaxAllowedSlots = StringToInt(sNewValue);
 
 	if (g_iMaxAllowedSlots < g_iMinAllowedSlots)
@@ -229,31 +231,31 @@ public CVarChangeVoteCommandDelay(Handle:hCVar, const String:sOldValue[], const 
 
 public CVarChangeMaxPlayers(Handle:hCVar, const String:sOldValue[], const String:sNewValue[])
 {
-	if(!GetConVarBool(g_cvarSlotsPluginEnabled)) return;
+	if (!GetConVarBool(g_cvarSlotsPluginEnabled)) return;
 	SetConVarInt(hCVar, GetConVarInt(g_cvarCurrentMaxSlots));
 	SetConVarInt(g_cvarSvVisibleMaxPlayers, GetConVarInt(g_cvarCurrentMaxSlots));
 }
 
 public SvVisibleMaxPlayers_Changed(Handle:cvar, const String:oldValue[], const String:newValue[]) {
-	if(!GetConVarBool(g_cvarSlotsPluginEnabled)) return;
+	if (!GetConVarBool(g_cvarSlotsPluginEnabled)) return;
 	SetConVarInt(g_hCVarMaxPlayersToolZ, GetConVarInt(g_cvarCurrentMaxSlots));
 	SetConVarInt(g_cvarSvVisibleMaxPlayers, GetConVarInt(g_cvarCurrentMaxSlots));
 }
 
 public Action:Cmd_SlotVote(iClient, iArgs)
 {
-	if(g_bSlotsLocked) {
+	if (g_bSlotsLocked) {
 		PrintToChat(iClient, "[SM] You can not change slots count. It's locked by config or admin.");
 		return Plugin_Handled;
 	}
-	if(!GetConVarBool(g_cvarSlotsPluginEnabled)) return Plugin_Handled;
+	if (!GetConVarBool(g_cvarSlotsPluginEnabled)) return Plugin_Handled;
 #if defined _pause_included_
 	if (g_bPause_Lib && IsInPause())
 	{
 		return Plugin_Handled;
 	}
 #endif
-	if(iClient < 1) return Plugin_Handled;
+	if (iClient < 1) return Plugin_Handled;
 	if (GetClientTeam(iClient) == 1)
 	{
 		PrintToChat(iClient, "%t", "Spectator response");
@@ -315,17 +317,22 @@ public Action:Timer_CreateSlotMenu(Handle:hTimer, any:iClient)
 
 public Action:Cmd_NoSpec(iClient, iArgs)
 {
-	if(g_bSlotsLocked) {
+	if (g_bSlotsLocked) {
 		PrintToChat(iClient, "[SM] You can not kick specs. It's locked by config or admin.");
 		return Plugin_Handled;
 	}
-	if(!GetConVarBool(g_cvarSlotsPluginEnabled)) return Plugin_Handled;
+	if (!GetConVarBool(g_cvarSlotsPluginEnabled)) return Plugin_Handled;
 #if defined _pause_included_
 	if (g_bPause_Lib && IsInPause())
 	{
 		return Plugin_Handled;
 	}
 #endif
+
+	if (iClient >= 1 && iClient <= MaxClients && IsClientInGame(iClient) && !IsFakeClient(iClient) && GetUserAdmin(iClient) != INVALID_ADMIN_ID) {
+		KickAllSpectators();
+		return Plugin_Handled;
+	}
 
 	if (GetClientTeam(iClient) == 1)
 	{
