@@ -198,7 +198,13 @@ public Native_IsInReady(Handle:plugin, numParams)
 public Native_IsClientCaster(Handle:plugin, numParams)
 {
 	new client = GetNativeCell(1);
-	return _:IsClientCaster(client);
+	
+	if (client >= 1 && client <= MaxClients && IsClientInGame(client)) {
+		return _:IsClientCaster(client);
+	}
+	else {
+		return false;
+	}
 }
 
 public Native_IsIDCaster(Handle:plugin, numParams)
