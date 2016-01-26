@@ -1035,6 +1035,7 @@ public Action:IsNobodyConnected(Handle:timer, any:timerDisconnectTime)
 	if (GetConVarBool(cvarFullResetOnEmpty))
 	{
 		DebugPrintToAll("Also doing a full reset by mapchange");
+		ServerCommand("sm_resetmatch");
 		ServerCommand("map c1m1_hotel");
 	}
 	
