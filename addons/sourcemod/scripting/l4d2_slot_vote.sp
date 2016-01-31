@@ -38,6 +38,7 @@ static Handle:g_hCVarMaxPlayersToolZ;
 
 static Handle:g_hSlotVote;
 static Handle:g_hNoSpecVote;
+static g_iNoSpecVoteInitiator;
 
 static g_iVoteDuration;
 static Float:g_fVoteCommandDelay;
@@ -141,8 +142,14 @@ public OnPluginStart()
 	RegConsoleCmd("sm_kickspec", Cmd_NoSpec);
 	RegConsoleCmd("sm_kickspecs", Cmd_NoSpec);
 
+	RegAdminCmd("sm_forcekickspecs", Cmd_ForceNoSpec, ADMFLAG_KICK);
 	RegAdminCmd("sm_lockslots", Cmd_LockSlots, ADMFLAG_CONVARS | ADMFLAG_CONFIG | ADMFLAG_PASSWORD | ADMFLAG_RCON | ADMFLAG_CHEATS | ADMFLAG_ROOT);
 	RegAdminCmd("sm_unlockslots", Cmd_UnLockSlots, ADMFLAG_CONVARS | ADMFLAG_CONFIG | ADMFLAG_PASSWORD | ADMFLAG_RCON | ADMFLAG_CHEATS | ADMFLAG_ROOT);
+}
+
+public Action:Cmd_ForceNoSpec(int client, int args) {
+	KickAllSpectators(client);
+	return Plugin_Handled;
 }
 
 public Action:Cmd_LockSlots(int client, int args) {	
@@ -329,11 +336,6 @@ public Action:Cmd_NoSpec(iClient, iArgs)
 	}
 #endif
 
-	if (iClient >= 1 && iClient <= MaxClients && IsClientInGame(iClient) && !IsFakeClient(iClient) && GetUserAdmin(iClient) != INVALID_ADMIN_ID) {
-		KickAllSpectators();
-		return Plugin_Handled;
-	}
-
 	if (GetClientTeam(iClient) == 1)
 	{
 		PrintToChat(iClient, "%t", "Spectator response");
@@ -509,11 +511,11 @@ public Action:TimerChangeMaxPlayers(Handle:timer)
 	return Plugin_Stop;
 }
 
-static StartNoSpecVote(iClient)
+static StartNoSpecVote(client)
 {
-	if (GetClientTeam(iClient) == 1)
+	if (GetClientTeam(client) == 1)
 	{
-		PrintToChat(iClient, "%t", "Spectator response");
+		PrintToChat(client, "%t", "Spectator response");
 		return;
 	}
 
@@ -534,19 +536,20 @@ static StartNoSpecVote(iClient)
 		}
 
 		g_hNoSpecVote = CreateBuiltinVote(NoSpecVoteActionHandler, BuiltinVoteType_Custom_YesNo, BuiltinVoteAction_Cancel | BuiltinVoteAction_VoteEnd | BuiltinVoteAction_End);
+		g_iNoSpecVoteInitiator = client;
 
 		decl String:sBuffer[64];
 		FormatEx(sBuffer, sizeof(sBuffer), "Do you want to kick spectators?");
 		SetBuiltinVoteArgument(g_hNoSpecVote, sBuffer);
-		SetBuiltinVoteInitiator(g_hNoSpecVote, iClient);
+		SetBuiltinVoteInitiator(g_hNoSpecVote, client);
 		SetBuiltinVoteResultCallback(g_hNoSpecVote, NoSpecVoteResultHandler);
 		DisplayBuiltinVote(g_hNoSpecVote, iPlayers, iNumPlayers, g_iVoteDuration);
 
-		FakeClientCommand(iClient, "Vote Yes");
+		FakeClientCommand(client, "Vote Yes");
 		return;
 	}
 
-	PrintToChat(iClient, "%t", "Vote denied");
+	PrintToChat(client, "%t", "Vote denied");
 }
 
 public NoSpecVoteActionHandler(Handle:vote, BuiltinVoteAction:action, param1, param2)
@@ -556,6 +559,7 @@ public NoSpecVoteActionHandler(Handle:vote, BuiltinVoteAction:action, param1, pa
 		case BuiltinVoteAction_End:
 		{
 			g_hNoSpecVote = INVALID_HANDLE;
+			g_iNoSpecVoteInitiator = 0;
 			CloseHandle(vote);
 		}
 
@@ -589,25 +593,44 @@ public NoSpecVoteResultHandler(Handle:vote, num_votes, num_clients, const client
 
 public Action:TimerKickAllSpectators(Handle:hTimer)
 {
-	KickAllSpectators();
+	KickAllSpectatorsByVote();
 	return Plugin_Stop;
 }
 
-static KickAllSpectators()
+static void KickAllSpectatorsByVote()
 {
-	new iSpecs;
+	KickAllSpectators(g_iNoSpecVoteInitiator);
+}
+
+static void KickAllSpectators(int client)
+{
+	int numSpecs;
 	decl String:reason[255];
 	Format(reason, sizeof(reason), "%t", "Spectator kick reason");
-	for (new i = 1; i <= MaxClients; i++)
+
+	AdminId callerid = INVALID_ADMIN_ID;
+	AdminId targetid = INVALID_ADMIN_ID;
+
+	if (IsClientInGame(client) && !IsFakeClient(client))
 	{
-		if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == 1)
+		callerid = GetUserAdmin(client);
+	}
+
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == 1 && i != client)
 		{
-			BanClient(i, 5, BANFLAG_AUTHID, reason, reason, "nospec");
-			iSpecs++;
+			targetid = GetUserAdmin(i);
+
+			// Enforce admin immunity.
+			if (targetid == INVALID_ADMIN_ID || (callerid != INVALID_ADMIN_ID && CanAdminTarget(callerid, targetid))) {
+				BanClient(i, 5, BANFLAG_AUTHID, reason, reason, "nospec");
+				numSpecs++;
+			}
 		}
 	}
 
-	if (iSpecs)
+	if (numSpecs)
 	{
 		PrintToChatAll("%t", "All spectators kicked");
 	}
