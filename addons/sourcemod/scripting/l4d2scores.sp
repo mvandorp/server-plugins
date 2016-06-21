@@ -633,7 +633,7 @@ public Action:Command_Swap(client, args)
 			continue;
 		
 		decl String:authid[128], team;
-		GetClientAuthId(player_id, AuthId_Steam2, authid, sizeof(authid));
+		GetClientAuthString(player_id, authid, sizeof(authid));
 		if(GetTrieValue(teamPlacementTrie, authid, team))
 			RemoveFromTrie(teamPlacementTrie, authid);
 		
@@ -677,7 +677,7 @@ public Action:Command_SwapTo(client, args)
 			continue;
 		
 		decl String:authid[128];
-		GetClientAuthId(player_id, AuthId_Steam2, authid, sizeof(authid));
+		GetClientAuthString(player_id, authid, sizeof(authid));
 		if(GetTrieValue(teamPlacementTrie, authid, team))
 			RemoveFromTrie(teamPlacementTrie, authid);
 		
@@ -955,7 +955,7 @@ CalculateNextMapTeamPlacement()
 	{
 		if(IsClientInGameHuman(i)) 
 		{
-			GetClientAuthId(i, AuthId_Steam2, authid, sizeof(authid));
+			GetClientAuthString(i, authid, sizeof(authid));
 			team = GetClientTeamForNextMap(i, pendingSwapScores, AreTeamsFlipped);
 			
 			DebugPrintToAll("Next map will place %N, now %d, to %d", i, GetClientTeam(i), team);
@@ -981,7 +981,7 @@ public Action:Event_PlayerTeam(Handle:event, const String:name[], bool:dontBroad
 	if(!IsClientInGameHuman(client)) return;
 
 	decl team, String:authid[256];
-	GetClientAuthId(client, AuthId_Steam2, authid, sizeof(authid));
+	GetClientAuthString(client, authid, sizeof(authid));
 		
 	if(GetTrieValue(teamPlacementTrie, authid, team))
 	{
@@ -1885,7 +1885,7 @@ public Action:Command_SwapNext(client, args)
 	{
 		if(IsClientInGameHuman(i)) 
 		{
-			GetClientAuthId(i, AuthId_Steam2, authid, sizeof(authid));
+			GetClientAuthString(i, authid, sizeof(authid));
 			team = GetOppositeClientTeam(i);
 			
 			DebugPrintToAll("Next map will place %N to %d", i, team);
