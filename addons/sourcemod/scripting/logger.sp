@@ -190,22 +190,35 @@ static int CreateLog(Database database)
 
     SQL_LockDatabase(database);
 
-    // Find the serverid
-    char query[256];
-    Format(query, sizeof(query), "SELECT sid FROM sb_servers WHERE ip='%s' AND port=%d", ip, port);
-    DBResultSet result = Query(database, query);
-    // TODO: Fail check
-    SQL_FetchRow(result);
-    int serverid = SQL_FetchInt(result, 0);
-    CloseHandle(result);
+    int serverid = FetchServerId(database, ip, port);
 
     // Build the query
+    char query[256];
     Format(query, sizeof(query), "INSERT IGNORE INTO sb_games (serverid, hostname, started_at, ended_at) VALUES (%d, '%s', '%s', '%s')", serverid, escapedHostname, datetime, datetime);
     FastQuery(database, query);
     int logID = SQL_GetInsertId(database);
+
     SQL_UnlockDatabase(database);
 
     return logID;
+}
+
+static int FetchServerId(Database database, const char[] ip, int port)
+{
+    char query[256];
+    Format(query, sizeof(query), "SELECT sid FROM sb_servers WHERE ip='%s' AND port=%d", ip, port);
+
+    DBResultSet result = Query(database, query);
+
+    if (!result.FetchRow() || SQL_IsFieldNull(result, 0)) {
+        CloseHandle(result);
+        SetFailState(ERR_SQL_EXECUTE_QUERY_FAILED, "Unable to retrieve the sid (server id) for this server.");
+        return -1;
+    }
+
+    int serverid = result.FetchInt(0);
+    CloseHandle(result);
+    return serverid;
 }
 
 static int GetEventFlags(bool chat, bool teamchat, int team)
