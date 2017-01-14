@@ -9,12 +9,13 @@
 #undef MAX_NAME_LENGTH
 
 #define MAX_NAME_LENGTH                 (32 + 1)
+#define MAX_TEAM_LENGTH                 (10 + 1)
 #define MAX_IP_LENGTH                   (15 + 1)
 #define MAX_STEAMID_LENGTH              (20 + 1)
 #define MAX_DATETIME_LENGTH             (19 + 1)
 #define MAX_ARG_SIZE                    33
 
-#define TEAM_NONE 0
+#define TEAM_UNASSIGNED 0
 #define TEAM_SPECTATORS 1
 #define TEAM_SURVIVORS 2
 #define TEAM_INFECTED 3
@@ -53,6 +54,7 @@ public void OnPluginStart()
     TryHookEvent("player_disconnect", OnPlayerDisconnect);
     TryHookEvent("player_changename", OnPlayerChangeName);
     TryHookEvent("player_say", OnPlayerChat);
+    TryHookEvent("player_team", OnPlayerChangeTeam);
 
     HookUserMessage(GetUserMessageId("VoteStart"), OnVoteStart);
     HookUserMessage(GetUserMessageId("VotePass"), OnVotePass);
@@ -435,6 +437,28 @@ public Action OnPlayerChangeName(Event event, const char[] eventName, bool dontB
     return Plugin_Continue;
 }
 
+public Action OnPlayerChangeTeam(Event event, const char[] eventName, bool dontBroadcast)
+{
+    int userid = event.GetInt("userid");
+    int client = GetClientOfUserId(userid);
+    int playerid = GetClientPlayerId(client);
+
+    if (!IS_VALID_INGAME(client) || IsFakeClient(client) || event.GetBool("disconnect") || event.GetInt("oldteam") == TEAM_UNASSIGNED)
+        return Plugin_Continue;
+
+    char name[MAX_NAME_LENGTH];
+    char team[MAX_TEAM_LENGTH];
+    char oldteam[MAX_TEAM_LENGTH];
+
+    GetTeamString(event.GetInt("team"), team, sizeof(team));
+    GetTeamString(event.GetInt("oldteam"), oldteam, sizeof(oldteam));
+    GetClientName(client, name, sizeof(name));
+
+    LogServerEvent(playerid, "* %s changed from team %s to %s", name, oldteam, team);
+
+    return Plugin_Continue;
+}
+
 public Action OnPlayerChat(Event event, const char[] eventName, bool dontBroadcast)
 {
     int userid = event.GetInt("userid");
@@ -453,6 +477,24 @@ public Action OnPlayerChat(Event event, const char[] eventName, bool dontBroadca
     LogChatEvent(playerid, name, g_bTeamSay[client], GetClientTeam(client), text);
 
     return Plugin_Continue;
+}
+
+static void GetTeamString(int teamid, char[] nameBuffer, int nameBufferSize)
+{
+    // Note: SourcePawn cases are not fall-through, so no break keyword.
+    switch (teamid) {
+        case TEAM_SPECTATORS:
+            Format(nameBuffer, nameBufferSize, "spectators");
+
+        case TEAM_INFECTED:
+            Format(nameBuffer, nameBufferSize, "infected");
+
+        case TEAM_SURVIVORS:
+            Format(nameBuffer, nameBufferSize, "survivors");
+
+        default:
+            Format(nameBuffer, nameBufferSize, "unassigned");
+    }
 }
 
 static int GetPlayerCount(int exclude=0)
