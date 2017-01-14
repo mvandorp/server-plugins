@@ -366,20 +366,18 @@ public Action OnSayTeam(client, args)
     g_bTeamSay[client] = true;
 }
 
-public void OnClientPostAdminCheck(int client)
+public void OnClientAuthorized(int client, const char[] auth)
 {
-    if (!IS_VALID_INGAME(client) || IsFakeClient(client) || GetClientPlayerId(client) != 0)
+    if (!IS_VALID_CLIENT(client) || IsFakeClient(client) || GetClientPlayerId(client) != 0)
         return;
 
     char name[MAX_NAME_LENGTH];
     char ip[MAX_IP_LENGTH];
-    char steamid[MAX_STEAMID_LENGTH];
 
     GetClientName(client, name, sizeof(name));
     GetClientIP(client, ip, sizeof(ip));
-    GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid));
 
-    int playerid = LogPlayerId(steamid);
+    int playerid = LogPlayerId(auth);
     LogPlayerIP(playerid, ip);
     LogPlayerName(playerid, name);
     LogServerEvent(playerid, "%s connected", name);
