@@ -12,6 +12,13 @@
 #define TEAM_SURVIVOR 2
 #define TEAM_INFECTED 3
 
+#define LISTEN_CHAT  0x1
+#define LISTEN_VOICE 0x2
+#define LISTEN_ALL   (LISTEN_CHAT | LISTEN_VOICE)
+
+Handle hCvarListenChatAccess = INVALID_HANDLE;
+Handle hCvarListenVoiceAccess = INVALID_HANDLE;
+
 public Plugin myinfo =
 {
 	name = "SpecLister",
@@ -27,6 +34,9 @@ public Plugin myinfo =
 
 public OnPluginStart()
 {
+	hCvarListenChatAccess = CreateConVar("speclistener_chat_access", "", "Access level needed to read teamchat as a spectator", FCVAR_PLUGIN);
+	hCvarListenVoiceAccess = CreateConVar("speclistener_voice_access", "", "Access level needed to hear voicechat as a spectator", FCVAR_PLUGIN);
+
 	HookEvent("player_team", Event_PlayerChangeTeam);
 
 	//Fix for End of round all-talk.
@@ -59,6 +69,11 @@ public Action Command_Hear(int client, args)
 {
 	if (GetClientTeam(client) != TEAM_SPEC)
 		return Plugin_Handled;
+
+	if (!HasListenVoiceAccess(client) && !HasListenChatAccess(client)) {
+		PrintToChat(client, "You do not have access to this command.");
+		return Plugin_Handled;
+	}
 
 	Handle panel = CreatePanel();
 	SetPanelTitle(panel, "Enable listen mode?");
@@ -106,7 +121,7 @@ public Action Command_SayTeam(int client, args)
 	{
 		for (new i = 1; i <= GetMaxClients(); i++)
 		{
-			if (IsClientInGame(i) && GetClientTeam(i) == TEAM_SPEC)
+			if (IsClientInGame(i) && GetClientTeam(i) == TEAM_SPEC && HasListenChatAccess(i))
 			{
 				switch (senderteam)	//Format the color different depending on team
 				{
@@ -154,7 +169,7 @@ public Event_PlayerChangeTeam(Handle event, const char[] name, bool dontBroadcas
 	if (client == 0)
 		return;
 
-	if (userTeam == TEAM_SPEC && IsValidClient(client))
+	if (userTeam == TEAM_SPEC && IsValidClient(client) && HasListenVoiceAccess(client))
 	{
 		SetClientListeningFlags(client, VOICE_LISTENALL);
 	}
@@ -170,7 +185,7 @@ public OnAlltalkChange(Handle convar, const char[] oldValue, const char[] newVal
 	{
 		for (new i = 1; i <= MaxClients; i++)
 		{
-			if (IsValidClient(i) && GetClientTeam(i) == TEAM_SPEC)
+			if (IsValidClient(i) && GetClientTeam(i) == TEAM_SPEC && HasListenVoiceAccess(i))
 			{
 				SetClientListeningFlags(i, VOICE_LISTENALL);
 			}
@@ -197,6 +212,28 @@ static bool IsValidClient(int client)
 		return false;
 
 	return true;
+}
+
+static bool HasListenChatAccess(int client)
+{
+	return HasAccess(client, hCvarListenChatAccess);
+}
+
+static bool HasListenVoiceAccess(int client)
+{
+	return HasAccess(client, hCvarListenVoiceAccess);
+}
+
+static bool HasAccess(int client, Handle hCvarAccessFlag)
+{
+	char flagString[128];
+	GetConVarString(hCvarAccessFlag, flagString, sizeof(flagString));
+
+	if (strlen(flagString) == 0) return true;
+
+	int accessFlags = ReadFlagString(flagString);
+
+	return (GetUserFlagBits(client) & accessFlags) == accessFlags;
 }
 
 static int TrimQuotes(char[] text)
