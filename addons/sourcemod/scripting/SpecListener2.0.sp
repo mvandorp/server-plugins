@@ -46,21 +46,6 @@ public OnPluginStart()
 	RegConsoleCmd("say_team", Command_SayTeam);
 }
 
-public OnClientDisconnect(int client)
-{
-	// Make the choose team menu display when someone quits
-	if (!IsFakeClient(client) && GetClientTeam(client) != TEAM_SPEC)
-	{
-		for (new i = 1; i <= MaxClients; i++)
-		{
-			if (IsValidClient(i) && GetClientTeam(i) == 1)
-			{
-				ClientCommand(i, "chooseteam");
-			}
-		}
-	}
-}
-
 /*============================================================================*/
 /* Events / Commands                                                          */
 /*============================================================================*/
