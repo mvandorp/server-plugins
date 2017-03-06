@@ -12,9 +12,7 @@
 #define TEAM_SURVIVOR 2
 #define TEAM_INFECTED 3
 
-new Handle:hAllTalk;
-
-public Plugin:myinfo = 
+public Plugin myinfo =
 {
 	name = "SpecLister",
 	author = "waertf & bear modded by bman",
@@ -23,77 +21,76 @@ public Plugin:myinfo =
 	url = "http://forums.alliedmods.net/showthread.php?t=95474"
 }
 
+/*============================================================================*/
+/* Global forwards                                                            */
+/*============================================================================*/
+
 public OnPluginStart()
 {
-	HookEvent("player_team",Event_PlayerChangeTeam);
-	RegConsoleCmd("hear", Panel_hear);
+	HookEvent("player_team", Event_PlayerChangeTeam);
 
 	//Fix for End of round all-talk.
-	hAllTalk = FindConVar("sv_alltalk");
-	HookConVarChange(hAllTalk, OnAlltalkChange);
+	HookConVarChange(FindConVar("sv_alltalk"), OnAlltalkChange);
 
-	//Spectators hear Team_Chat
+	RegConsoleCmd("hear", Command_Hear);
 	RegConsoleCmd("say_team", Command_SayTeam);
 }
 
-public PanelHandler1(Handle:menu, MenuAction:action, param1, param2)
+public OnClientDisconnect(int client)
 {
-	if (action == MenuAction_Select)
+	// Make the choose team menu display when someone quits
+	if (!IsFakeClient(client) && GetClientTeam(client) != TEAM_SPEC)
 	{
-		PrintToConsole(param1, "You selected item: %d", param2)
-		if(param2==1)
+		for (new i = 1; i <= MaxClients; i++)
 		{
-			SetClientListeningFlags(param1, VOICE_LISTENALL);
-			PrintToChat(param1,"\x04[Listen Mode]\x03Enabled" );
+			if (IsValidClient(i) && GetClientTeam(i) == 1)
+			{
+				ClientCommand(i, "chooseteam");
+			}
 		}
-		else
-		{
-			SetClientListeningFlags(param1, VOICE_NORMAL);
-			PrintToChat(param1,"\x04[Listen Mode]\x03Disabled" );
-		}
-	}
-	else if (action == MenuAction_Cancel)
-	{
-		PrintToServer("Client %d's menu was cancelled.  Reason: %d", param1, param2);
 	}
 }
 
-public Action:Panel_hear(client,args)
+/*============================================================================*/
+/* Events / Commands                                                          */
+/*============================================================================*/
+
+public Action Command_Hear(int client, args)
 {
-	if(GetClientTeam(client)!=TEAM_SPEC)
+	if (GetClientTeam(client) != TEAM_SPEC)
 		return Plugin_Handled;
 
-	new Handle:panel = CreatePanel();
-	SetPanelTitle(panel, "Enable listen mode ?");
+	Handle panel = CreatePanel();
+	SetPanelTitle(panel, "Enable listen mode?");
 	DrawPanelItem(panel, "Yes");
 	DrawPanelItem(panel, "No");
- 
-	SendPanelToClient(panel, client, PanelHandler1, 20);
- 
+
+	SendPanelToClient(panel, client, ListenPanelHandler, 20);
+
 	CloseHandle(panel);
- 
+
 	return Plugin_Handled;
 }
 
-public Action:Command_SayTeam(client, args)
+public Action Command_SayTeam(int client, args)
 {
 	if (client == 0)
 		return Plugin_Continue;
-		
-	new String:buffermsg[256];
-	new String:text[192];
+
+	char buffermsg[256];
+	char text[192];
 	GetCmdArgString(text, sizeof(text));
-	new senderteam = GetClientTeam(client);
-	
-	if(FindCharInString(text, '@') == 0)	//Check for admin messages
+	int senderteam = GetClientTeam(client);
+
+	if (FindCharInString(text, '@') == 0)	//Check for admin messages
 		return Plugin_Continue;
-	
-	new startidx = trim_quotes(text);  //Not sure why this function is needed.(bman)
-	
-	new String:name[32];
+
+	int startidx = TrimQuotes(text);
+
+	char name[32];
 	GetClientName(client,name,31);
-	
-	new String:senderTeamName[10];
+
+	char senderTeamName[10];
 	switch (senderteam)
 	{
 		case 3:
@@ -103,7 +100,7 @@ public Action:Command_SayTeam(client, args)
 		case 1:
 			senderTeamName = "SPEC"
 	}
-	
+
 	//Is not console, Sender is not on Spectators, and there are players on the spectator team
 	if (client > 0 && senderteam != TEAM_SPEC && GetTeamClientCount(TEAM_SPEC) > 0)
 	{
@@ -126,19 +123,83 @@ public Action:Command_SayTeam(client, args)
 	return Plugin_Continue;
 }
 
-stock SayText2(client_index, author_index, const String:message[] ) 
+public ListenPanelHandler(Handle menu, MenuAction action, param1, param2)
 {
-    new Handle:buffer = StartMessageOne("SayText2", client_index)
-    if (buffer != INVALID_HANDLE) 
+	if (action == MenuAction_Select)
 	{
-        BfWriteByte(buffer, author_index)
-        BfWriteByte(buffer, true)
-        BfWriteString(buffer, message)
-        EndMessage()
-    }
-} 
+		PrintToConsole(param1, "You selected item: %d", param2)
+		if (param2 == 1)
+		{
+			SetClientListeningFlags(param1, VOICE_LISTENALL);
+			PrintToChat(param1,"\x04[Listen Mode]\x03Enabled" );
+		}
+		else
+		{
+			SetClientListeningFlags(param1, VOICE_NORMAL);
+			PrintToChat(param1,"\x04[Listen Mode]\x03Disabled" );
+		}
+	}
+	else if (action == MenuAction_Cancel)
+	{
+		PrintToServer("Client %d's menu was cancelled.  Reason: %d", param1, param2);
+	}
+}
 
-public trim_quotes(String:text[])
+public Event_PlayerChangeTeam(Handle event, const char[] name, bool dontBroadcast)
+{
+	int userID = GetEventInt(event, "userid");
+	int userTeam = GetEventInt(event, "team");
+	int client = GetClientOfUserId(userID);
+
+	if (client == 0)
+		return;
+
+	if (userTeam == TEAM_SPEC && IsValidClient(client))
+	{
+		SetClientListeningFlags(client, VOICE_LISTENALL);
+	}
+	else
+	{
+		SetClientListeningFlags(client, VOICE_NORMAL);
+	}
+}
+
+public OnAlltalkChange(Handle convar, const char[] oldValue, const char[] newValue)
+{
+	if (StringToInt(newValue) == 0)
+	{
+		for (new i = 1; i <= MaxClients; i++)
+		{
+			if (IsValidClient(i) && GetClientTeam(i) == TEAM_SPEC)
+			{
+				SetClientListeningFlags(i, VOICE_LISTENALL);
+			}
+		}
+	}
+}
+
+/*============================================================================*/
+/* Helper functions                                                           */
+/*============================================================================*/
+
+static bool IsValidClient(int client)
+{
+	if (client == 0)
+		return false;
+
+	if (!IsClientConnected(client))
+		return false;
+
+	if (IsFakeClient(client))
+		return false;
+
+	if (!IsClientInGame(client))
+		return false;
+
+	return true;
+}
+
+static int TrimQuotes(char[] text)
 {
 	new startidx = 0
 	if (text[0] == '"')
@@ -151,74 +212,18 @@ public trim_quotes(String:text[])
 			text[len-1] = '\0'
 		}
 	}
-	
+
 	return startidx
 }
 
-public Event_PlayerChangeTeam(Handle:event, const String:name[], bool:dontBroadcast)
+static SayText2(int client, int author, const char[] message)
 {
-	new userID = GetClientOfUserId(GetEventInt(event, "userid"));
-	new userTeam = GetEventInt(event, "team");
-	if(userID==0)
-		return ;
-
-	//PrintToChat(userID,"\x02X02 \x03X03 \x04X04 \x05X05 ");\\ \x02:color:default \x03:lightgreen \x04:orange \x05:darkgreen
-	
-	if(userTeam==TEAM_SPEC && IsValidClient(userID))
+	Handle buffer = StartMessageOne("SayText2", client)
+	if (buffer != INVALID_HANDLE)
 	{
-		SetClientListeningFlags(userID, VOICE_LISTENALL);
-		//PrintToChat(userID,"\x04[Listen Mode]\x03Enabled" )
-		
-	}
-	else
-	{
-		SetClientListeningFlags(userID, VOICE_NORMAL);
-		//PrintToChat(userID,"\x04[listen]\x03disable" )
+		BfWriteByte(buffer, author)
+		BfWriteByte(buffer, true)
+		BfWriteString(buffer, message)
+		EndMessage()
 	}
 }
-
-public OnAlltalkChange(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	if (StringToInt(newValue) == 0)
-	{
-		for (new i = 1; i <= MaxClients; i++)
-		{
-			if (IsValidClient(i) && GetClientTeam(i) == TEAM_SPEC)
-			{
-				SetClientListeningFlags(i, VOICE_LISTENALL);
-				//PrintToChat(i,"Re-Enable Listen Because of All-Talk");
-			}
-		}
-	}
-}
-
-public OnClientDisconnect(client)
-{
-	if (!IsFakeClient(client) && GetClientTeam(client) != 1)	//Make the choose team menu display when someone quits
-	{
-		for (new i = 1; i <= MaxClients; i++)
-		{
-			if (IsValidClient(i) && GetClientTeam(i) == 1)
-			{
-				ClientCommand(i, "chooseteam");
-			}
-		}
-	}
-}
-
-public IsValidClient (client)
-{
-    if (client == 0)
-        return false;
-    
-    if (!IsClientConnected(client))
-        return false;
-    
-    if (IsFakeClient(client))
-        return false;
-    
-    if (!IsClientInGame(client))
-        return false;	
-		
-    return true;
-}  
