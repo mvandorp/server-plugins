@@ -12,10 +12,6 @@
 #define TEAM_SURVIVOR 2
 #define TEAM_INFECTED 3
 
-#define LISTEN_CHAT  0x1
-#define LISTEN_VOICE 0x2
-#define LISTEN_ALL   (LISTEN_CHAT | LISTEN_VOICE)
-
 Handle hCvarListenChatAccess = INVALID_HANDLE;
 Handle hCvarListenVoiceAccess = INVALID_HANDLE;
 
@@ -55,7 +51,7 @@ public Action Command_Hear(int client, args)
 	if (GetClientTeam(client) != TEAM_SPEC)
 		return Plugin_Handled;
 
-	if (!HasListenVoiceAccess(client) && !HasListenChatAccess(client)) {
+	if (!HasListenVoiceAccess(client)) {
 		PrintToChat(client, "You do not have access to this command.");
 		return Plugin_Handled;
 	}
