@@ -183,13 +183,10 @@ static bool IsValidClient(int client)
 	if (client == 0)
 		return false;
 
-	if (!IsClientConnected(client))
+	if (!IsClientInGame(client))
 		return false;
 
 	if (IsFakeClient(client))
-		return false;
-
-	if (!IsClientInGame(client))
 		return false;
 
 	return true;
