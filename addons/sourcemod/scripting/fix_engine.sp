@@ -67,7 +67,7 @@ public OnPluginStart()
 */
 public Action:OnPlayerRunCmd(client, &buttons)
 {
-	if (g_iCvarEngineFlags && IsPlayerAlive(client) && !IsFakeClient(client)){
+	if (g_iCvarEngineFlags && IsClientInGame(client) && IsPlayerAlive(client) && !IsFakeClient(client)){
 
 		if (g_iCvarEngineFlags & (1 << LadderSpeedGlitch) && GetEntityMoveType(client) == MOVETYPE_LADDER){
 
