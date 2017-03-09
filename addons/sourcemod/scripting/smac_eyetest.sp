@@ -178,7 +178,7 @@ public OnClientDisconnect_Post(client)
 public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:angles[3], &weapon, &subtype, &cmdnum, &tickcount, &seed, mouse[2])
 {
 	// Ignore bots
-	if (IsFakeClient(client))
+	if (!IsClientInGame(client) || IsFakeClient(client))
 		return Plugin_Continue;
 	
 	// NULL commands
