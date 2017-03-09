@@ -107,7 +107,11 @@ public OnTeamChange(Handle:event, String:name[], bool:dontBroadcast)
 
 public Action:OnTeamChangeDelay(Handle:timer, any:client)
 {
-	ProcessPlayerLerp(client);
+	if (IsClientInGame(client) && !IsFakeClient(client))
+	{
+		ProcessPlayerLerp(client);
+	}
+
 	return Plugin_Handled;
 }
 
