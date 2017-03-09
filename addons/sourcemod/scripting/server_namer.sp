@@ -185,7 +185,7 @@ SetVanillaName()
 {
 	decl String:GameMode[128];
 	decl String:FinalHostname[128];
-	if (isempty)
+	if (isempty || IsGameModeEmpty())
 	{
 		GetConVarString(cvarServerNameFormatCase3, FinalHostname, sizeof(FinalHostname));
 		ParseNameAndSendToMainConVar(FinalHostname);
@@ -264,5 +264,24 @@ bool:ServerIsEmpty()
 			return false;
 		}
 	}
+
 	return true;
+}
+
+bool:IsGameModeEmpty()
+{
+	decl String:GameMode[128];
+	decl String:CurGamemode[128];
+
+	GetConVarString(cvarMpGameMode, CurGamemode, sizeof(CurGamemode));
+
+	KvRewind(kv);
+	if (KvJumpToKey(kv, CurGamemode))
+	{
+		KvGetString(kv, "name", GameMode, sizeof(GameMode));
+
+		if (GameMode[0] == '\0') return true;
+	}
+
+	return false;
 }
