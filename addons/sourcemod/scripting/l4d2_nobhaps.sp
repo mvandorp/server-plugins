@@ -38,7 +38,7 @@ public Action:OnPlayerRunCmd(client, &buttons, &impulse, Float:vel[3], Float:ang
 	
 	if(!GetConVarBool(hCvarEnable)) return Plugin_Continue;
 	
-	if (IsPlayerAlive(client))
+	if (IsClientInGame(client) && IsPlayerAlive(client))
 	{
 		#if defined(L4DBUILD)
 		if(GetClientTeam(client) == 3)
