@@ -124,7 +124,7 @@ public Action:SetVerticalIncrement_Cmd(client, args)
 
 public Action:OnPlayerRunCmd(client, &buttons)
 {
-	if (GetClientTeam(client) == 1)
+	if (IsClientInGame(client) && GetClientTeam(client) == 1)
 	{
 		if (buttons & IN_USE)
 		{
