@@ -46,6 +46,10 @@ new Handle:sb_stop;
 new Handle:survivor_limit;
 new Handle:z_max_player_zombies;
 
+new Float:customMessageInterval = 2.0;
+new KeyValues:customMessages;
+new String:customMessage[MAX_FOOTER_LEN];
+
 new Handle:casterTrie;
 new Handle:liveForward;
 new Handle:menuPanel;
@@ -93,7 +97,7 @@ public OnPluginStart()
 	l4d_ready_enable_sound = CreateConVar("l4d_ready_enable_sound", "1", "Enable sound during countdown & on live");
 	l4d_ready_live_sound = CreateConVar("l4d_ready_live_sound", "buttons/blip2.wav", "The sound that plays when a round goes live");
 	l4d_ready_chuckle = CreateConVar("l4d_ready_chuckle", "0", "Enable random moustachio chuckle during countdown");
-	l4d_ready_warp_team = CreateConVar("l4d_ready_warp_team", "1", "Should we warp the entire team when a player attempts to leave saferoom?");
+	l4d_ready_warp_team = CreateConVar("l4d_ready_warp_team", "0", "Should we warp the entire team when a player attempts to leave saferoom?");
 	HookConVarChange(l4d_ready_survivor_freeze, SurvFreezeChange);
 
 	HookEvent("round_start", RoundStart_Event);
@@ -129,6 +133,7 @@ public OnPluginStart()
 #endif
 
 	LoadTranslations("common.phrases");
+	LoadCustomMessages();
 }
 
 public OnPluginEnd()
@@ -547,6 +552,10 @@ UpdatePanel()
 
 	menuPanel = CreatePanel();
 
+	if (customMessages != INVALID_HANDLE) {
+		DrawPanelText(menuPanel, customMessage);
+	}
+
 	decl String:nameBuf[MAX_NAME_LENGTH*2];
 	decl String:authBuffer[64];
 	decl bool:caster;
@@ -648,6 +657,13 @@ InitiateReadyUp()
 	inReadyUp = true;
 	inLiveCountdown = false;
 	readyCountdownTimer = INVALID_HANDLE;
+
+	if (customMessages != INVALID_HANDLE) {
+		CreateTimer(customMessageInterval, MessageUpdate_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+
+		customMessages.Rewind();
+		customMessages.GotoFirstSubKey();
+	}
 
 	if (GetConVarBool(l4d_ready_disable_spawns))
 	{
@@ -844,7 +860,6 @@ CancelFullReady()
 		CloseHandle(readyCountdownTimer);
 		readyCountdownTimer = INVALID_HANDLE;
 		PrintHintTextToAll("Countdown Cancelled!");
-\
 	}
 }
 
@@ -960,4 +975,34 @@ MakePropsBreakable() {
       }
       DispatchKeyValueFloat(iEntity, "minhealthdmg", 5.0);
     }
+}
+
+LoadCustomMessages() {
+	customMessages = CreateKeyValues("ReadyupMessages");
+
+	decl String:filepath[128];
+	BuildPath(Path_SM, filepath, sizeof(filepath), "configs/readyup.txt");
+
+	if (!FileToKeyValues(customMessages, filepath) || !customMessages.GotoFirstSubKey()) {
+		customMessages = KeyValues:INVALID_HANDLE;
+	}
+}
+
+NextCustomMessage() {
+	customMessages.GetString("message", customMessage, sizeof(customMessage), "");
+
+	if (!customMessages.GotoNextKey()) {
+		customMessages.Rewind();
+		customMessages.GotoFirstSubKey();
+	}
+}
+
+public Action:MessageUpdate_Timer(Handle:timer)
+{
+	if (inReadyUp && customMessages != INVALID_HANDLE)
+	{
+		NextCustomMessage();
+		return Plugin_Continue;
+	}
+	return Plugin_Handled;
 }
