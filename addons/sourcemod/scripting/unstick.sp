@@ -8,7 +8,7 @@
 public Plugin:myinfo = 
 {
     name = "Unstick",
-    author = "KitRifty",
+    author = "KitRifty, HowIChrgeLazer",
     description = "Attempts to unstick you from certain places.",
     version = PLUGIN_VERSION,
     url = ""
@@ -24,11 +24,14 @@ enum
 };
 
 new g_iGame = GAME_UNKNOWN;
+new g_teleportsLeft[MAXPLAYERS]; // Client teleports left array
+new Handle:g_hNumOfTeleports; // Handle for number of allowed teleports
+new Handle:g_hPluginAnnounce; // Handle for plugin announcement
+new Handle:ClientDelayTimers[MAXPLAYERS][2]; // Timers for teleport delays on clients
 
 // TF2
 new Handle:g_hAvoidTeammates;
 new bool:g_bAvoidTeammates;
-
 
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
@@ -38,7 +41,6 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 	return APLRes_Success;
 }
 
-
 public OnPluginStart()
 {
 	LoadTranslations("core.phrases");
@@ -46,17 +48,21 @@ public OnPluginStart()
 
 	decl String:sGame[PLATFORM_MAX_PATH];
 	GetGameFolderName(sGame, sizeof(sGame));
-	
+
 	if (StrEqual(sGame, "tf", false) || StrEqual(sGame, "tf_beta", false))
 	{
 		g_iGame = GAME_TF2;
 		g_hAvoidTeammates = FindConVar("tf_avoidteammates");
 		HookConVarChange(g_hAvoidTeammates, OnConVarChanged);
 	}
-	  
+
+	// Cvar for number of teleports a client can have
+	g_hNumOfTeleports = CreateConVar("l4d2unstick_teleports", "3", "Amount of times the client can use !stuck per map", FCVAR_PLUGIN);
+	g_hPluginAnnounce = CreateConVar("l4d2unstick_announce", "0", "Announces at each map start that the !stuck command is available", FCVAR_PLUGIN);
+
 	// Say command hooks
-	RegConsoleCmd("say", Command_Say);
-	RegConsoleCmd("say_team", Command_Say);
+	RegConsoleCmd("sm_stuck", Command_Unstuck);
+	RegConsoleCmd("sm_unstuck", Command_Unstuck);
 	RegAdminCmd("sm_unstick", Command_Unstick, ADMFLAG_SLAY);
 }
 
@@ -71,6 +77,39 @@ public OnConfigsExecuted()
 public OnConVarChanged(Handle:cvar, const String:oldValue[], const String:newValue[])
 {
 	if (cvar == g_hAvoidTeammates) g_bAvoidTeammates = bool:StringToInt(newValue);
+}
+
+public OnClientPutInServer(client)
+{
+	g_teleportsLeft[client] = GetConVarInt(g_hNumOfTeleports); // Number of teleports for client
+
+	// Lets check if we're allowing annoucements
+	if(GetConVarInt(g_hPluginAnnounce) == 1)
+	{
+		ClientDelayTimers[client][1] = CreateTimer(50.0, StuckPluginAnnounce, client);
+	}
+}
+
+public OnClientDisconnect(client)
+{
+	if (ClientDelayTimers[client][0] != INVALID_HANDLE)
+	{
+		KillTimer(ClientDelayTimers[client][0]);
+		ClientDelayTimers[client][0] = INVALID_HANDLE;
+	}
+
+	if (ClientDelayTimers[client][1] != INVALID_HANDLE)
+	{
+		KillTimer(ClientDelayTimers[client][1]);
+		ClientDelayTimers[client][1] = INVALID_HANDLE;
+	}
+}
+
+public Action:StuckPluginAnnounce(Handle:timer, any:client)
+{
+	// Announcement message
+	PrintToChat (client, "[SM] Survivors: If you become glitched and unable to move, type !stuck during the round to free yourself.");
+	ClientDelayTimers[client][1] = INVALID_HANDLE;
 }
 
 public Action:Command_Unstick(client, args)
@@ -110,7 +149,52 @@ public Action:Command_Unstick(client, args)
 	return Plugin_Handled;
 }
 
-AttemptUnstick(client, bool:bUsePlayerCollision=true, const Float:flMins[3]=NULL_VECTOR, const Float:flMaxs[3]=NULL_VECTOR)
+public Action:Command_Unstuck(client,args)
+{
+	if (IsValidClient(client))
+	{
+		// We're checking for client to say !stuck here, also check if client is hanging from a ledge
+		new CheckLedge = GetEntProp(client, Prop_Send, "m_isHangingFromLedge");
+
+		if (g_teleportsLeft[client] > 0 && CheckLedge == 0)
+		{
+			PrintToChat (client, "[SM] Unsticking in 3 seconds...");
+			ClientDelayTimers[client][0] = CreateTimer(3.0, DelayTeleport, client);
+		}
+		else if (g_teleportsLeft[client] == 0)
+		{
+			// Client has 0 teleports left
+			PrintToChat (client, "[SM] You are out of teleports this round!");
+		}
+		else if (CheckLedge == 1)
+		{
+			// Client is hanging from a ledge
+			PrintToChat (client, "[SM] You cannot use !stuck right now!");
+		}
+	}
+}
+
+public Action:DelayTeleport(Handle:timer, any:client)
+{
+	if (IsValidClient(client) && AttemptUnstick(client))
+	{
+		// Notify the client that they have been unstuck and take away a teleport use
+		g_teleportsLeft[client] = g_teleportsLeft[client] - 1;
+
+		if(g_teleportsLeft[client] > 1 || g_teleportsLeft[client] == 0)
+		{
+			PrintToChat (client, "[SM] You have been unstuck! You have \"%i\" attempts left this map.", g_teleportsLeft[client]);
+		}
+		else
+		{
+			PrintToChat (client, "[SM] You have been unstuck! You have \"%i\" attempt left this map.", g_teleportsLeft[client]);
+		}
+
+		ClientDelayTimers[client][0] = INVALID_HANDLE;
+	}
+}
+
+bool AttemptUnstick(client, bool:bUsePlayerCollision=true, const Float:flMins[3]=NULL_VECTOR, const Float:flMaxs[3]=NULL_VECTOR)
 {
 	decl Float:flTargetPos[3];
 	GetClientAbsOrigin(client, flTargetPos);
@@ -136,7 +220,11 @@ AttemptUnstick(client, bool:bUsePlayerCollision=true, const Float:flMins[3]=NULL
 		}
 		
 		TeleportEntity(client, flTargetPos, NULL_VECTOR, NULL_VECTOR);
+
+		return true;
 	}
+
+	return false;
 }
 
 stock bool:TestEntityPosition(client, Float:flPos[3], bool:bUsePlayerCollision=true, const Float:flMins[3]=NULL_VECTOR, const Float:flMaxs[3]=NULL_VECTOR)
@@ -253,39 +341,4 @@ public Native_AttemptUnstick(Handle:plugin, numParams)
 	GetNativeArray(3, flMins, 3);
 	GetNativeArray(4, flMaxs, 3);
 	AttemptUnstick(client, bool:GetNativeCell(2), flMins, flMaxs);
-}
-
-public Action:Command_Say(client,args)
-{
-  if(client != 0)
-  {
-    decl String:szText[192];
-    GetCmdArgString(szText, sizeof(szText));
-    szText[strlen(szText)-1] = '\0';
-    
-    new String:szParts[3][16];
-    ExplodeString(szText[1], " ", szParts, 3, 16);
-    
-    // We're checking for client to say !stuck here, also check if client is hanging from a ledge
-    new CheckLedge = GetEntProp(client, Prop_Send, "m_isHangingFromLedge");
-    if((strcmp(szParts[0],"!stuck",false) == 0) && CheckLedge == 0)
-    {
-      PrintToChat (client, "[SM] Unsticking in 3 seconds...");
-      //ClientDelayTimers[client][0] = CreateTimer(3.0, DelayTeleport, client);
-    }
-    else if((strcmp(szParts[0],"!stuck",false) == 0) && CheckLedge != 1)
-    {
-      // Client has 0 teleports left
-      //
-      PrintToChat (client, "[SM] You are out of teleports this round!");
-    }
-    else if((strcmp(szParts[0],"!stuck",false) == 0) && CheckLedge == 1)
-    {
-      // Client is hanging from a ledge
-      PrintToChat (client, "[SM] You cannot use !stuck right now!");
-    }
-    else
-    {
-    }
-  }	
 }
