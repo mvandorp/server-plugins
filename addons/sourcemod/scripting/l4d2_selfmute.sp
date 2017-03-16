@@ -69,7 +69,10 @@ public OnLibraryRemoved(const String:name[])
 {
     if (StrEqual(name, "scp"))
     {
-        SetFailState("Simple Chat Processor Unloaded. Plugin Disabled.");
+		// Since this plugin only relies on the OnChatMessage forward, nothing bad should happen when scp is unloaded.
+		// Instead of aborting, just continue silently as if everything were ok.
+
+        // SetFailState("Simple Chat Processor Unloaded. Plugin Disabled.");
     }
 }
 
