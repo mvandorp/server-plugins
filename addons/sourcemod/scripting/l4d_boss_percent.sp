@@ -187,6 +187,7 @@ public Action:BossCmd(client, args)
 	if (iTeam == L4D2Team_Spectator)
 	{
 		PrintBossPercents(client);
+		PrintCurrentToClient(client);
 		return Plugin_Handled;
 	}
 
