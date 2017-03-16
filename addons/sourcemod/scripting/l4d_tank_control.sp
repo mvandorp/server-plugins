@@ -73,7 +73,20 @@ public OnPluginStart()
     // Cvars
     hTankPrint = CreateConVar("tankcontrol_print_all", "1", "Who gets to see who will become the tank? (0 = Infected, 1 = Everyone)", FCVAR_PLUGIN);
     hTankDebug = CreateConVar("tankcontrol_debug", "0", "Whether or not to debug to console", FCVAR_PLUGIN);
+}
 
+public int Native_GetQueuedTankClient(Handle plugin, int numParams)
+{
+    if (strcmp(queuedTankSteamId, "") == 0) return -1;
+
+    return getInfectedPlayerBySteamId(queuedTankSteamId);
+}
+
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+   CreateNative("GetQueuedTankClient", Native_GetQueuedTankClient);
+
+   return APLRes_Success;
 }
 
 /**
