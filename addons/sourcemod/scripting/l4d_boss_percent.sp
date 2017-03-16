@@ -7,6 +7,7 @@
 #undef REQUIRE_PLUGIN
 #include <readyup>
 #include <colors>
+#include <l4d_tank_control>
 
 public Plugin:myinfo =
 {
@@ -164,20 +165,32 @@ public Action:AddReadyFooter(Handle:timer)
 
 stock PrintBossPercents(client)
 {
-	if(GetConVarBool(hCvarTankPercent))
-	{
-		if (iTankPercent)
-			CPrintToChat(client, "<{red}Tank{default}> {olive}%d%%{default}", iTankPercent);
-		else
-			CPrintToChat(client, "<{red}Tank{default}> {olive}None{default}");
-	}
-
 	if(GetConVarBool(hCvarWitchPercent))
 	{
 		if (iWitchPercent)
 			CPrintToChat(client, "<{red}Witch{default}> {olive}%d%%{default}", iWitchPercent);
 		else
 			CPrintToChat(client, "<{red}Witch{default}> {olive}None{default}");
+	}
+
+	if(GetConVarBool(hCvarTankPercent))
+	{
+        int tankClient = GetQueuedTankClient();
+
+        if (tankClient == -1)
+        {
+		    if (iTankPercent)
+			    CPrintToChat(client, "<{red}Tank{default}> {olive}%d%%{default}", iTankPercent);
+		    else
+			    CPrintToChat(client, "<{red}Tank{default}> {olive}None{default}");
+        }
+        else
+        {
+		    if (iTankPercent)
+			    CPrintToChat(client, "<{red}Tank{default}> {olive}%d%%{default} as {red}%N{default}", iTankPercent, tankClient);
+		    else
+			    CPrintToChat(client, "<{red}Tank{default}> {olive}None{default} as {red}%N{default}", tankClient);
+        }
 	}
 }
 
