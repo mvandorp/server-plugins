@@ -6,6 +6,7 @@
 #include <l4d2util>
 #undef REQUIRE_PLUGIN
 #include <readyup>
+#include <colors>
 
 public Plugin:myinfo =
 {
@@ -25,6 +26,12 @@ new Handle:hCvarTankPercent;
 new Handle:hCvarWitchPercent;
 new bool:readyUpIsAvailable;
 new bool:readyFooterAdded;
+
+#define MAX(%0,%1) (((%0) > (%1)) ? (%0) : (%1))
+
+//new Handle:hCvarPrintToEveryone;
+new Handle:survivor_limit;
+new Handle:z_max_player_zombies;
 
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
@@ -48,6 +55,18 @@ public OnPluginStart()
 
 	HookEvent("player_left_start_area", LeftStartAreaEvent, EventHookMode_PostNoCopy);
 	HookEvent("round_start", RoundStartEvent, EventHookMode_PostNoCopy);
+	
+	/*
+	hCvarPrintToEveryone =
+		CreateConVar("l4d_global_percent", "1",
+				"Display boss percentages to entire team when using commands",
+				FCVAR_PLUGIN);
+	*/
+	RegConsoleCmd("sm_cur", CurrentCmd);
+	RegConsoleCmd("sm_current", CurrentCmd);
+
+	survivor_limit = FindConVar("survivor_limit");
+	z_max_player_zombies = FindConVar("z_max_player_zombies");
 }
 
 public OnAllPluginsLoaded()
@@ -148,17 +167,17 @@ stock PrintBossPercents(client)
 	if(GetConVarBool(hCvarTankPercent))
 	{
 		if (iTankPercent)
-			PrintToChat(client, "\x01Tank spawn: [\x04%d%%\x01]", iTankPercent);
+			CPrintToChat(client, "<{red}Tank{default}> {olive}%d%%{default}", iTankPercent);
 		else
-			PrintToChat(client, "\x01Tank spawn: [\x04None\x01]");
+			CPrintToChat(client, "<{red}Tank{default}> {olive}None{default}");
 	}
 
 	if(GetConVarBool(hCvarWitchPercent))
 	{
 		if (iWitchPercent)
-			PrintToChat(client, "\x01Witch spawn: [\x04%d%%\x01]", iWitchPercent);
+			CPrintToChat(client, "<{red}Witch{default}> {olive}%d%%{default}", iWitchPercent);
 		else
-			PrintToChat(client, "\x01Witch spawn: [\x04None\x01]");
+			CPrintToChat(client, "<{red}Witch{default}> {olive}None{default}");
 	}
 }
 
@@ -178,12 +197,14 @@ public Action:BossCmd(client, args)
 			if (IsClientConnected(i) && IsClientInGame(i) && L4D2_Team:GetClientTeam(i) == iTeam)
 			{
 				PrintBossPercents(i);
+				PrintCurrentToClient(i);																//HERE
 			}
 		}
 	}
 	else
 	{
 		PrintBossPercents(client);
+		PrintCurrentToClient(client);																	//HERE
 	}
 
 	return Plugin_Handled;
@@ -199,4 +220,83 @@ stock Float:GetWitchFlow(round)
 {
 	return L4D2Direct_GetVSWitchFlowPercent(round) -
 		( Float:GetConVarInt(g_hVsBossBuffer) / L4D2Direct_GetMapMaxFlowDistance() );
+}
+
+public Action:CurrentCmd(client, args)
+{
+	new L4D2_Team:team = L4D2_Team:GetClientTeam(client);
+	if (team == L4D2Team_Spectator)
+	{
+		PrintCurrentToClient(client);
+	}
+	else
+	{
+		if (GetConVarBool(hCvarPrintToEveryone))
+		{
+			PrintCurrentToTeam(team);																	//HERE
+		}
+		else
+		{
+			PrintCurrentToClient(client);
+		}
+	}
+}
+
+stock PrintCurrentToClient(client)
+{
+	CPrintToChat(client, "<{green}Current{default}> {olive}%d%%", GetMaxSurvivorCompletion());
+}
+																										//HERE
+stock PrintCurrentToTeam(L4D2_Team:team)
+{
+	new members_found;
+	new team_max = GetTeamMaxHumans(team);
+	new max_completion = GetMaxSurvivorCompletion();
+	for (new client = 1;
+			client <= MaxClients && members_found < team_max;
+			client++)
+	{
+		if(IsClientInGame(client) && !IsFakeClient(client) &&
+				L4D2_Team:GetClientTeam(client) == team)
+		{
+			members_found++;
+			CPrintToChat(client, "<{green}Current{default}> {olive}%d%%", max_completion);
+		}
+	}
+}
+
+stock GetMaxSurvivorCompletion()
+{
+	new Float:flow = 0.0;
+	decl Float:tmp_flow;
+	decl Float:origin[3];
+	decl Address:pNavArea;
+	for (new client = 1; client <= MaxClients; client++)
+	{
+		if(IsClientInGame(client) &&
+			L4D2_Team:GetClientTeam(client) == L4D2Team_Survivor)
+		{
+			GetClientAbsOrigin(client, origin);
+			pNavArea = L4D2Direct_GetTerrorNavArea(origin);
+			if (pNavArea != Address_Null)
+			{
+				tmp_flow = L4D2Direct_GetTerrorNavAreaFlow(pNavArea);
+				flow = MAX(flow, tmp_flow);
+			}
+		}
+	}
+	return RoundToNearest(flow * 100 / L4D2Direct_GetMapMaxFlowDistance());
+}
+
+stock GetTeamMaxHumans(L4D2_Team:team)
+{
+	if (team == L4D2Team_Survivor)
+	{
+		return GetConVarInt(survivor_limit);
+	}
+	else if (team == L4D2Team_Infected)
+	{
+		return GetConVarInt(z_max_player_zombies);
+	}
+	return MaxClients;
 }
