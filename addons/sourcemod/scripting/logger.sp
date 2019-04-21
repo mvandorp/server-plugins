@@ -128,18 +128,15 @@ static void LogChatEvent(int playerid, const char[] name, bool teamChat, int tea
 static void LogEvent(int playerid, const char[] name, int flags, const char[] text)
 {
     char query1[512], query2[128];
-    char formattedText[256], escapedText[256], escapedName[64];
+    char escapedText[256], escapedName[64];
     char datetime[MAX_DATETIME_LENGTH];
 
     // Ensure that a log is opened
     if (g_iLogID == 0)
         g_iLogID = CreateLog(g_hDatabase);
 
-    // Format the text
-    VFormat(formattedText, sizeof(formattedText), text, 4);
-
     // Escape the text and name so that it is safe to insert into a query
-    g_hDatabase.Escape(formattedText, escapedText, sizeof(escapedText));
+    g_hDatabase.Escape(text, escapedText, sizeof(escapedText));
     g_hDatabase.Escape(name, escapedName, sizeof(escapedName));
 
     // Get the current date and time
