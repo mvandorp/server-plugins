@@ -5,54 +5,64 @@
 		"#format"	"{1:d},{2:d}"
 		"en"		"{default}Usage: {olive}!slots {default}<Number of slots between {olive}{1} {default}and {olive}{2}{default}>"
 		"fr"		"{default}Utilisation: {olive}!slots {default}<nombre de slots entre{olive}{1} {default}et {olive}{2}{default}>"
+		"ru"		"{default}Использование: {olive}!slots {default}<Количество слотов между {olive}{1} {default}и {olive}{2}{default}>"
 	}
 	"Same as current"
 	{
 		"#format"	"{1:d}"
 		"en"		"{default}Server already has {olive}{1} {default}slots."
 		"fr"		"{default}Le serveur a déjà {olive}{1} {default}slots."
+		"ru"		"{default}Сервер уже имеет {olive}{1} {default}слотов."
 	}
 	"No spectators"
 	{
 		"en"		"There is no spectators."
 		"fr"		"Il n'y a pas de spectateurs."
+		"ru"		"Нет наблюдателей."
 	}
 	"Slot vote title"
 	{
 		"#format"	"{1:d}"
 		"en"		"Current slots: {1}\n-------------------------\nChoose new value:"
 		"fr"		"Nombre de slots actuel : {1}\n-------------------------\nChoisis une nouvelle valeur :"
+		"ru"		"Текущие слоты: {1}\n-------------------------\nВыберите новое значение:"
 	}
 	"Slots"
 	{
 		"en"		"slots"
 		"fr"		"slots"
+		"ru"		"слотов"
 	}
 	"All spectators kicked"
 	{
 		"en"		"All spectators were successfully kicked."
 		"fr"		"Tous les spectateurs ont été kickés."
+		"ru"		"Все наблюдатели были успешно выгнаны."
 	}
 	"Slots changed"
 	{
 		"#format"	"{1:d},{2:d}"
 		"en"		"{default}Number of server slots changed from {olive}{1} {default}to {olive}{2}"
 		"fr"		"{default}Le noombre de slot a été changé de {olive}{1} {default}à {olive}{2}"
+		"ru"		"{default}Количество слотов сервера изменено с {olive}{1} {default}на {olive}{2}"
 		
 	}
 	"Spectator kick reason"
 	{
 		"en"		"You have been voted off"
 		"fr"		"Vous avez voté non"
+		"ru"		"по результатам голосования"
 	}
 	"Vote denied"
 	{
 		"en"		"Vote cannot be started now, try again later."
 		"fr"		"Le vote ne peut pas être lancé pour le moment, recommencer ultérieurement."
+		"ru"		"Голосование не может быть начато сейчас, попробуйте позже."
 	}
 	"Spectator response"
 	{
 		"en"		"Spectators can not call votes."
 		"fr"		"Les spectateurs ne peuvent pas voter."
+		"ru"		"Наблюдатели не могут начать голосование."
 	}
 }
